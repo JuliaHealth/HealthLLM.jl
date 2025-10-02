@@ -1,8 +1,9 @@
 module HealthLLM
 
 using PromptingTools
-using PromptingTools.Experimental.RAGTools
-using LinearAlgebra, SparseArrays
+using RAGTools
+using LinearAlgebra
+using SparseArrays
 using JSON3, Serialization
 using Statistics
 

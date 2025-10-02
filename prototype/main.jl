@@ -1,12 +1,12 @@
 using LinearAlgebra, SparseArrays
 using PromptingTools
-using PromptingTools.Experimental.RAGTools: FileChunker, build_index, SimpleIndexer, airag
+using RAGTools: FileChunker, build_index, SimpleIndexer, airag
 using JSON3, Serialization
 using Statistics: mean
 using LibPQ
 
 const PT = PromptingTools
-const RT = PromptingTools.Experimental.RAGTools
+const RT = RAGTools
 
 # User-defined models
 MODEL_CHAT = "deepseek-r1:1.5b"  # Default chat model

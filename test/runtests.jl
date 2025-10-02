@@ -9,7 +9,7 @@ println("Starting tests")
 ti = time()
 
 @testset "HealthLLM tests" begin
-    @test 1 == 1
+    include("FunSQLTest.jl")
 end
 
 ti = time() - ti
