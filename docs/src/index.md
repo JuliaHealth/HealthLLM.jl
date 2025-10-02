@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = JuliaHealthLLM
+CurrentModule = HealthLLM
 ```
 
-# JuliaHealthLLM
+# HealthLLM
 
-Documentation for [JuliaHealthLLM](https://github.com/ParamThakkar123/JuliaHealthLLM.jl).
+Documentation for [HealthLLM](https://github.com/ParamThakkar123/HealthLLM.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [JuliaHealthLLM]
+Modules = [HealthLLM]
 ```

@@ -1,14 +1,14 @@
-using JuliaHealthLLM
+using HealthLLM
 using Documenter
 
-DocMeta.setdocmeta!(JuliaHealthLLM, :DocTestSetup, :(using JuliaHealthLLM); recursive=true)
+DocMeta.setdocmeta!(HealthLLM, :DocTestSetup, :(using HealthLLM); recursive=true)
 
 makedocs(;
-    modules=[JuliaHealthLLM],
+    modules=[HealthLLM],
     authors="ParamThakkar123 <paramthakkar864@gmail.com> and TheCedarPrince <jacobszelko@gmail.com>",
-    sitename="JuliaHealthLLM.jl",
+    sitename="HealthLLM.jl",
     format=Documenter.HTML(;
-        canonical="https://ParamThakkar123.github.io/JuliaHealthLLM.jl",
+        canonical="https://ParamThakkar123.github.io/HealthLLM.jl",
         edit_link="master",
         assets=String[],
     ),
@@ -18,6 +18,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ParamThakkar123/JuliaHealthLLM.jl",
+    repo="github.com/ParamThakkar123/HealthLLM.jl",
     devbranch="master",
 )

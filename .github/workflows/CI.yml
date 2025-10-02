@@ -72,6 +72,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using JuliaHealthLLM
-          DocMeta.setdocmeta!(JuliaHealthLLM, :DocTestSetup, :(using JuliaHealthLLM); recursive=true)
-          doctest(JuliaHealthLLM)
+          using HealthLLM
+          DocMeta.setdocmeta!(HealthLLM, :DocTestSetup, :(using HealthLLM); recursive=true)
+          doctest(HealthLLM)

@@ -1,4 +1,4 @@
-module JuliaHealthLLM
+module HealthLLM
 
 using PromptingTools
 using PromptingTools.Experimental.RAGTools
