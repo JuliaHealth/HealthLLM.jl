@@ -2,8 +2,11 @@ import HuggingFaceHub as HF
 using DuckDB
 using JSON3
 using Test
+using DataFrames
+using FunSQL
 
-# Get the dataset object by id
+
+# Download dataset files
 synthea_ds = HF.info(HF.Dataset, "JuliaHealthOrg/JuliaHealthDatasets")
 funsql_ds = HF.info(HF.Dataset, "JuliaHealthOrg/FunSQLQueries")
 
@@ -21,18 +24,23 @@ data = JSON3.read(read(funsql_dataset_path, String))
         sql_query = row["sql_query"]
         funsql_code = row["response"]
 
-        # Evaluate FunSQL code to get the query object
-        funsql_query = eval(Meta.parse(funsql_code))
+        try
+            # Evaluate FunSQL code to get the query object
+            funsql_query = eval(Meta.parse(funsql_code))
 
-        # Render FunSQL query to SQL for DuckDB
-        funsql_sql = FunSQL.render(funsql_query, dialect=FunSQL.SQLDialect(:duckdb))
+            # Render FunSQL query to SQL for DuckDB
+            funsql_sql = FunSQL.render(funsql_query, dialect=FunSQL.SQLDialect(:duckdb))
 
-        # Execute both queries
-        sql_result = DuckDB.execute(conn, sql_query) |> DataFrame
-        funsql_result = DuckDB.execute(conn, funsql_sql) |> DataFrame
+            # Execute both queries
+            sql_result = DuckDB.execute(conn, sql_query) |> DataFrame
+            funsql_result = DuckDB.execute(conn, funsql_sql) |> DataFrame
 
-        # Compare results
-        is_equal = sql_result == funsql_result
+            # Compare results
+            is_equal = isequal(sql_result, funsql_result)
+        catch err
+            @warn "Query $i failed: $err"
+            is_equal = false
+        end
 
         @testset "Query $i" begin
             @test is_equal
