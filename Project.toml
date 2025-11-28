@@ -1,7 +1,7 @@
 name = "HealthLLM"
 uuid = "1de6b779-c1fb-4125-b891-fad447459241"
-authors = ["ParamThakkar123 <paramthakkar864@gmail.com> and TheCedarPrince <jacobszelko@gmail.com>"]
 version = "0.0.1"
+authors = ["ParamThakkar123 <paramthakkar864@gmail.com> and TheCedarPrince <jacobszelko@gmail.com>"]
 
 [deps]
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
@@ -28,7 +28,7 @@ JSON3 = "1.14.3"
 LibPQ = "1.18.0"
 LinearAlgebra = "1.11.0"
 PromptingTools = "0.82.1"
-RAGTools = "0.7.0"
+RAGTools = "0.7.0, 0.10"
 Serialization = "1.11.0"
 SparseArrays = "1.11.0"
 Statistics = "1.11.1"
