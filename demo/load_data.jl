@@ -45,6 +45,17 @@ function combine_exp_raw(root::AbstractString; output::AbstractString="combined_
     end
 end
 
-# default invocation for the requested folder:
-root = raw"E:\HealthLLM.jl\JuliaHealthLLM\data\exp_raw"
-combine_exp_raw(root; output="JuliaHealthLLM_exp_raw_combined.txt")
+function main()
+    root = get(
+        ENV,
+        "HEALTHLLM_EXP_RAW_ROOT",
+        joinpath(dirname(@__DIR__), "JuliaHealthLLM", "data", "exp_raw")
+    )
+    isdir(root) || throw(ArgumentError("Input directory does not exist: $root"))
+    output_path = joinpath(@__DIR__, "JuliaHealthLLM_exp_raw_combined.txt")
+    combine_exp_raw(root; output=output_path)
+end
+
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
+end
