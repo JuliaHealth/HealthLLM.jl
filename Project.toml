@@ -4,10 +4,21 @@ authors = ["ParamThakkar123 <paramthakkar864@gmail.com> and TheCedarPrince <jaco
 version = "0.0.1"
 
 [deps]
+ConfigEnv = "01234589-554d-41b7-ae5c-7b6ee2db6796"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DuckDB = "d2f5444f-75bc-4fdf-ac35-56f514c445e1"
+Embeddings = "c5bfea45-b7f1-5224-a596-15500f5db411"
+FunSQL = "cf6cc811-59f4-4a10-b258-a8547a8f6407"
 GoogleGenAI = "903d41d1-eaca-47dd-943b-fee3930375ab"
+HuggingFaceHub = "d0076355-e2c0-48e6-a044-05906e51b7fc"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 LibPQ = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"
+MbedTLS = "739be429-bea8-5141-9913-cc70e7f3736d"
+OpenSSL = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
 PromptingTools = "670122d1-24a8-4d70-bfce-740807c42192"
 RAGTools = "16ddad29-bbe8-45a7-857d-3d9514eb0023"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
 
 [compat]
 DataFrames = "1.8"

@@ -10,3 +10,4 @@
 demo/JuliaHealthLLM_exp_raw_combined.txt
 .env.example
 .env
+cacert.pem
