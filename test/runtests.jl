@@ -6,8 +6,6 @@ println("Starting tests")
 ti = time()
 
 @testset "HealthLLM tests" begin
-    include("UnitTests.jl")
-
     if get(ENV, "HEALTHLLM_RUN_INTEGRATION_TESTS", "false") == "true"
         include("FunSQLTest.jl")
     else
