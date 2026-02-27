@@ -14,5 +14,4 @@ function generate_funsql_query(index, model_embedding::String, model_name::Strin
 
     return answer
 end
-
 end
