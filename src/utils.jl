@@ -36,6 +36,5 @@ function register_models(model_name::String, model_embedding::String)
 
     PromptingTools.MODEL_CHAT = model_name
     PromptingTools.MODEL_EMBEDDING = model_embedding
-
 end
 end
