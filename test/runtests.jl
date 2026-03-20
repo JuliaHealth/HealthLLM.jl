@@ -1,17 +1,26 @@
-using DrWatson, Test
-@quickactivate "HealthLLM"
+using Test
+using Pkg: Pkg
 
-# Here you include files using `srcdir`
-# include(srcdir("file.jl"))
-
-# Run test suite
-println("Starting tests")
-ti = time()
-
-@testset "HealthLLM tests" begin
-    include("FunSQLTest.jl")
+@testset "Pgvector" begin
+    include("PgvectorTest.jl")
 end
 
-ti = time() - ti
-println("\nTest took total time of:")
-println(round(ti/60, digits = 3), " minutes")
+@testset "Utils" begin
+    include("UtilsTest.jl")
+end
+
+@testset "Database" begin
+    include("DatabaseTest.jl")
+end
+
+@testset "Embedding" begin
+    include("EmbeddingTest.jl")
+end
+
+@testset "Query" begin
+    include("QueryTest.jl")
+end
+
+@testset "FunSQL" begin
+    include("FunSQLTest.jl")
+end

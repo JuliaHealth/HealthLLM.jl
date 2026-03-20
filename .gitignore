@@ -7,3 +7,4 @@
 .env
 .env.example
 JuliaHealthLLM_exp_raw_combined.txt
+cacert.pem
