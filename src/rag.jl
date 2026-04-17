@@ -1,6 +1,7 @@
 module RAG
 
-using ..HealthLLM: collect_files_with_extensions, write_combined_file, ModelProvider
+using ..Utils: collect_files_with_extensions, write_combined_file
+using ..Providers: ModelProvider
 
 export SimpleEmbedder, prepare_data, chunk_text, build_index, ChunkResult, retrieve_chunks, generate_answer, PromptTemplate
 
