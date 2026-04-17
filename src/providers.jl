@@ -196,35 +196,6 @@ function embed(provider::HuggingFaceEmbedder, texts::Vector{String}; kwargs...)
 end
 
 end
-
-function embed(provider::EmbeddingProvider, texts::Vector{String}; kwargs...)
-    error("embed not implemented for $(typeof(provider))")
-end
-
-# Concrete implementations
-
-struct HuggingFaceProvider <: ModelProvider
-    api_key::String
-    endpoint::String
-    model::String
-end
-
-function HuggingFaceProvider(; api_key=get(ENV, "HF_TOKEN", ""), endpoint="https://router.huggingface.co/chat/completions", model="Qwen/Qwen3.5-0.8B")
-    HuggingFaceProvider(api_key, endpoint, model)
-end
-
-function generate(provider::HuggingFaceProvider, prompt::String; kwargs...)
-    response = aigenerate(
-        PromptingTools.CustomOpenAISchema(),
-        prompt;
-        model=provider.model,
-        api_key=provider.api_key,
-        api_kwargs=(; url=provider.endpoint),
-        kwargs...
-    )
-    return response.content
-end
-
 struct GroqProvider <: ModelProvider
     api_key::String
     model::String
