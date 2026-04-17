@@ -2,7 +2,30 @@ module RAG
 
 using ..HealthLLM: collect_files_with_extensions, write_combined_file, ModelProvider
 
-export SimpleEmbedder, prepare_data, chunk_text, build_index, ChunkResult, retrieve_chunks, generate_answer
+export SimpleEmbedder, prepare_data, chunk_text, build_index, ChunkResult, retrieve_chunks, generate_answer, PromptTemplate
+
+struct PromptTemplate
+    template::String
+    input_variables::Vector{String}
+end
+
+function PromptTemplate(template::String)
+    # Extract variables from {variable} patterns
+    vars = String[]
+    for m in eachmatch(r"\{(\w+)\}", template)
+        push!(vars, m.captures[1])
+    end
+    unique!(vars)
+    PromptTemplate(template, vars)
+end
+
+function format(template::PromptTemplate; kwargs...)
+    prompt = template.template
+    for (key, value) in kwargs
+        prompt = replace(prompt, "{$key}" => string(value))
+    end
+    prompt
+end
 
 struct SimpleEmbedder
     vocab::Dict{String, Int}
@@ -107,27 +130,37 @@ function retrieve_chunks(index, question::AbstractString; topk::Int=5, embedder:
     return results
 end
 
-function generate_answer(index, question::AbstractString; topk::Int=5, embedder::SimpleEmbedder, provider::ModelProvider)
+function generate_answer(index, question::AbstractString; topk::Int=5, embedder::SimpleEmbedder, provider::ModelProvider, prompt_template::Union{String, PromptTemplate})
     chunks = retrieve_chunks(index, question; topk=topk, embedder=embedder)
     
     context = join([c.text for c in chunks], "\n\n---\n\n")
     
-    prompt = """
+    if isa(prompt_template, PromptTemplate)
+        prompt = format(prompt_template; context=context, question=question)
+    else
+        prompt = replace(prompt_template, "{context}" => context, "{question}" => question)
+    end
+    
+    answer = generate(provider, prompt)
+    return (answer=answer, chunks=chunks)
+end
+
+# Backward compatibility
+function generate_answer(index, question::AbstractString; topk::Int=5, embedder::SimpleEmbedder, provider::ModelProvider)
+    prompt_template = """
     Use the following retrieved context to answer the question.
     Write a Julia expression using FunSQL.jl to generate the appropriate SQL query.
     Give only the Julia FunSQL code as output, nothing else.
 
     CONTEXT:
-    $context
+    {context}
 
     QUESTION:
-    $question
+    {question}
 
     ANSWER:
     """
-    
-    answer = generate(provider, prompt)
-    return (answer=answer, chunks=chunks)
+    generate_answer(index, question; topk=topk, embedder=embedder, provider=provider, prompt_template=prompt_template)
 end
 
 end

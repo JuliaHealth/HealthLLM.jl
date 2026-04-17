@@ -53,6 +53,30 @@ embedder = HuggingFaceEmbedder()
 index = build_index_rag(cfg, files; embedder=embedder)
 ```
 
+### Custom Prompts
+
+Like LangChain, you can customize prompts using `PromptTemplate`:
+
+```julia
+using HealthLLM
+
+# Create a custom prompt template
+prompt_template = PromptTemplate("""
+Answer the question based on the context.
+
+Context: {context}
+
+Question: {question}
+
+Answer:
+""")
+
+# Use in generate_answer
+result = generate_answer(index, question; embedder=embedder, provider=provider, prompt_template=prompt_template)
+```
+
+Or pass a string with placeholders `{context}` and `{question}`.
+
 ## Citing
 
 See [`CITATION.bib`](CITATION.bib) for the relevant reference(s).

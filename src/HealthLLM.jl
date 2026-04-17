@@ -18,7 +18,7 @@ include("query.jl")
 import .Utils: collect_files_with_extensions, write_combined_file, register_models
 import .Providers: ModelProvider, EmbeddingProvider, HuggingFaceProvider, GroqProvider, OllamaProvider, GeminiProvider, OpenAIProvider, AnthropicProvider, HuggingFaceEmbedder, generate
 import .Registry: register_provider, get_provider, list_providers
-import .RAG: SimpleEmbedder, prepare_data, chunk_text, build_index, ChunkResult, retrieve_chunks, generate_answer
+import .RAG: SimpleEmbedder, prepare_data, chunk_text, build_index, ChunkResult, retrieve_chunks, generate_answer, PromptTemplate
 import .Embedding: build_index_rag
 import .Database: store_embeddings_pgvector
 import .Query: generate_funsql_query
@@ -27,6 +27,6 @@ export collect_files_with_extensions, write_combined_file, generate_funsql_query
 build_index_rag, store_embeddings_pgvector,
 ModelProvider, EmbeddingProvider, HuggingFaceProvider, GroqProvider, OllamaProvider, GeminiProvider, OpenAIProvider, AnthropicProvider, HuggingFaceEmbedder,
 register_provider, get_provider, list_providers, generate,
-SimpleEmbedder, prepare_data, chunk_text, build_index, ChunkResult, retrieve_chunks, generate_answer
+SimpleEmbedder, prepare_data, chunk_text, build_index, ChunkResult, retrieve_chunks, generate_answer, PromptTemplate
 
 end
