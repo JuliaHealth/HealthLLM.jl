@@ -7,21 +7,12 @@ using ConfigEnv
 
 dotenv(joinpath(@__DIR__, "..", ".env"))
 
-const MODEL_NAME = "llama-3.3-70b-versatile"
+const HF_MODEL = "Qwen/Qwen3.5-0.8B"
+const HF_API_KEY = get(ENV, "HF_TOKEN", get(ENV, "HUGGINGFACE_TOKEN", ""))
+const HF_ENDPOINT = get(ENV, "HF_API_ENDPOINT", "https://router.huggingface.co/chat/completions")
 const EMBEDDING_DIM = 1024
-
-get_api_key() = get(ENV, "GROQ_API_KEY", "")
-
-# Register Groq model
-PromptingTools.register_model!(; name=MODEL_NAME, schema=PromptingTools.CustomOpenAISchema())
-
-using MozillaCACerts_jll
-for var in ["SSL_CERT_FILE", "SSL_CERT_DIR", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"]
-    if !haskey(ENV, var)
-        ENV[var] = var in ["SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"] ? 
-                   MozillaCACerts_jll.cacert : dirname(MozillaCACerts_jll.cacert)
-    end
-end
+const OLLAMA_MODEL = get(ENV, "OLLAMA_MODEL", "qwen2.5:1.5b")
+const OLLAMA_URL = get(ENV, "OLLAMA_URL", "http://localhost:11434")
 
 struct SimpleEmbedder
     vocab::Dict{String, Int}
@@ -126,16 +117,15 @@ function retrieve_chunks(index, question::AbstractString; topk::Int=5, embedder:
     return results
 end
 
-function generate_answer(index, question::AbstractString; api_key::String, topk::Int=5, embedder::SimpleEmbedder)
-    println("Debug: api_key length: ", length(api_key))
+function generate_answer(index, question::AbstractString; topk::Int=5, embedder::SimpleEmbedder, ollama_llm=nothing)
     chunks = retrieve_chunks(index, question; topk=topk, embedder=embedder)
     
     context = join([c.text for c in chunks], "\n\n---\n\n")
     
     prompt = """
     Use the following retrieved context to answer the question.
-    Write a Julia expression using FunSQL.jl to generate the appropriate SQL query.
-    Give only the Julia FunSQL code as output, nothing else.
+    For any given query write its FunSQL query. Give the funsql query as output.
+    Give only the FunSQL query as output nothing else.
 
     CONTEXT:
     $context
@@ -146,13 +136,45 @@ function generate_answer(index, question::AbstractString; api_key::String, topk:
     ANSWER:
     """
     
-    response = PromptingTools.aigenerate(prompt; model=MODEL_NAME, api_key=api_key, api_kwargs=(url="https://api.groq.com/openai/v1/",))
-    return (answer=response, chunks=chunks)
+    if ollama_llm !== nothing
+        println("Generating with Ollama ($(ollama_llm.model_name))...")
+        answer = generate(ollama_llm, prompt)
+    else
+        response = aigenerate(
+            PromptingTools.CustomOpenAISchema(),
+            prompt;
+            model=HF_MODEL,
+            api_key=HF_API_KEY,
+            api_kwargs=(; url=HF_ENDPOINT)
+        )
+        answer = response.content
+    end
+    return (answer=answer, chunks=chunks)
 end
 
 function main()
-    api_key = get_api_key()
-    isempty(api_key) && throw(ArgumentError("GROQ_API_KEY must be set in .env file"))
+    println("Using HuggingFace model: $HF_MODEL")
+    println("Endpoint: $HF_ENDPOINT")
+    
+    ollama_llm = nothing
+    println("\nTrying to load Ollama model: $OLLAMA_MODEL")
+    println("Ollama URL: $OLLAMA_URL")
+    
+    if ollama_is_running(OLLAMA_URL)
+        try
+            ollama_llm = load_ollama_model(OLLAMA_MODEL; base_url=OLLAMA_URL)
+            set_generation_config!(ollama_llm; temperature=0.3f0, num_predict=512)
+            println("Ollama model loaded successfully!")
+        catch e
+            println("Warning: Could not load Ollama model: $e")
+            println("Falling back to API-based inference...")
+        end
+    else
+        println("Ollama is not running at $OLLAMA_URL")
+        println("Start it with: ollama serve")
+        println("Or install Ollama from: https://ollama.com/download")
+        println("\nFalling back to API-based inference...")
+    end
     
     data_dir = get(
         ENV,
@@ -171,7 +193,7 @@ function main()
     println("\n" * "="^50)
     println("HealthLLM.jl Demo")
     println("Embedding: Local Hash Embeddings (Open Source)")
-    println("Generation: Groq ($MODEL_NAME)")
+    println("Generation: HuggingFace ($HF_MODEL)")
     println("="^50)
     
     embedder = SimpleEmbedder()
@@ -200,7 +222,7 @@ function main()
             end
 
             println("\n--- Generated FunSQL Query ---")
-            result = generate_answer(index, q; api_key=api_key, embedder=embedder)
+            result = generate_answer(index, q; embedder=embedder, ollama_llm=ollama_llm)
             println(result.answer)
             println()
         catch err
@@ -211,7 +233,7 @@ function main()
     println("bye")
 end
 
-const COMBINED_PATH = joinpath(dirname(@__DIR__), "OHDSI_FunSQL_combined.txt")
+const COMBINED_PATH = joinpath(@__DIR__, "JuliaHealthLLM_exp_raw_combined.txt")
 
 if abspath(PROGRAM_FILE) == @__FILE__
     main()
