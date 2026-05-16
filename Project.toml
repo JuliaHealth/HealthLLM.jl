@@ -1,41 +1,53 @@
 name = "HealthLLM"
 uuid = "1de6b779-c1fb-4125-b891-fad447459241"
-authors = ["ParamThakkar123 <paramthakkar864@gmail.com> and TheCedarPrince <jacobszelko@gmail.com>"]
 version = "0.0.1"
+authors = ["ParamThakkar123 <paramthakkar864@gmail.com> and TheCedarPrince <jacobszelko@gmail.com>"]
 
 [deps]
+ConfigEnv = "01234589-554d-41b7-ae5c-7b6ee2db6796"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
 DuckDB = "d2f5444f-75bc-4fdf-ac35-56f514c445e1"
+Embeddings = "c5bfea45-b7f1-5224-a596-15500f5db411"
 FunSQL = "cf6cc811-59f4-4a10-b258-a8547a8f6407"
+GoogleGenAI = "903d41d1-eaca-47dd-943b-fee3930375ab"
 HuggingFaceHub = "d0076355-e2c0-48e6-a044-05906e51b7fc"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 LibPQ = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+MbedTLS = "739be429-bea8-5141-9913-cc70e7f3736d"
+OpenSSL = "4d8831e6-92b7-49fb-bdf8-b643e874388c"
 PromptingTools = "670122d1-24a8-4d70-bfce-740807c42192"
 RAGTools = "16ddad29-bbe8-45a7-857d-3d9514eb0023"
 Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+Transformers = "21ca0261-441d-5938-ace7-c90938fde4d4"
 
 [compat]
-DataFrames = "1.8.0"
-DrWatson = "2.19.1"
-DuckDB = "1.3.2"
-FunSQL = "0.15.0"
-HuggingFaceHub = "0.1.2"
-JSON3 = "1.14.3"
+ConfigEnv = "1.0.0"
+DataFrames = "1.8"
+DuckDB = "1.3, 1.4"
+FunSQL = "0.15"
+GoogleGenAI = "0.5"
+HuggingFaceHub = "0.1"
+JSON3 = "1.14"
 LibPQ = "1.18.0"
-LinearAlgebra = "1.10"
+LinearAlgebra = "1.12.0"
 PromptingTools = "0.82.1"
 RAGTools = "0.7.0"
-Serialization = "1.10"
-SparseArrays = "1.10"
-Statistics = "1.10"
+Serialization = "1.11.0"
+SparseArrays = "1.12.0"
+Statistics = "1.11.1"
 julia = "1.10"
 
 [extras]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DuckDB = "d2f5444f-75bc-4fdf-ac35-56f514c445e1"
+FunSQL = "cf6cc811-59f4-4a10-b258-a8547a8f6407"
+HuggingFaceHub = "d0076355-e2c0-48e6-a044-05906e51b7fc"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["DataFrames", "DuckDB", "FunSQL", "HuggingFaceHub", "JSON3", "Test"]
