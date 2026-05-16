@@ -135,6 +135,10 @@ function generate_answer(index, question::AbstractString; api_key::String, topk:
     prompt = """
     Use the following retrieved context to answer the question.
     Write a Julia expression using FunSQL.jl to generate the appropriate SQL query.
+
+    Always give the correct syntax for FunSQL, and look into the FunSQL.jl documentation before answering.
+    Use the `@funsql` macro syntax and make sure to consult the documentation about this syntax.
+    Don't use pipes in FunSQL syntax.
     Give only the Julia FunSQL code as output, nothing else.
 
     CONTEXT:
