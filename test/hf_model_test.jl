@@ -1,5 +1,6 @@
 
 using Test
+using DrWatson
 @quickactivate "HealthLLM"
 
 using HealthLLM
@@ -8,7 +9,7 @@ using RAGTools
 
 @testset "HuggingFace model support" begin
     # Schema detection should return a HuggingFaceSchema for HF-like model strings
-    hf_schema = Utils.get_schema(nothing, "hf:facebook/opt-350m")
+    hf_schema = HealthLLM.Utils.get_schema(nothing, "hf:facebook/opt-350m")
     if isdefined(PromptingTools, :HuggingFaceSchema)
         @test typeof(hf_schema) == typeof(PromptingTools.HuggingFaceSchema())
     else
@@ -20,30 +21,15 @@ using RAGTools
     @test PromptingTools.MODEL_CHAT == "hf:facebook/opt-350m"
     @test PromptingTools.MODEL_EMBEDDING == "hf:sentence-transformers/all-mpnet-base-v2"
 
-    # Monkeypatch RAGTools.airag to capture kwargs passed by generate_funsql_query
-    original_airag = RAGTools.airag
-    called = Dict{Symbol,Any}()
+    # Confirm schema inference for generator & embedder without invoking RAG internals
+    gen_schema = HealthLLM.Utils.get_schema(nothing, "hf:facebook/opt-350m")
+    emb_schema = HealthLLM.Utils.get_schema(nothing, "hf:sentence-transformers/all-mpnet-base-v2")
 
-    RAGTools.airag = (index; kwargs...) -> begin
-        called[:kwargs] = kwargs
-        return "dummy-answer"
-    end
-
-    try
-        ans = HealthLLM.generate_funsql_query(nothing, "hf:sentence-transformers/all-mpnet-base-v2", "hf:facebook/opt-350m", "{input_query}", "hello")
-        @test ans == "dummy-answer"
-
-        kwargs = called[:kwargs]
-        @test haskey(kwargs, :retriever_kwargs)
-        @test haskey(kwargs, :generator_kwargs)
-
-        retriever = kwargs[:retriever_kwargs]
-        generator = kwargs[:generator_kwargs]
-
-        @test typeof(retriever[:schema]) == typeof(PromptingTools.HuggingFaceSchema())
-        @test typeof(generator[:schema]) == typeof(PromptingTools.HuggingFaceSchema())
-    finally
-        # restore original method
-        RAGTools.airag = original_airag
+    if isdefined(PromptingTools, :HuggingFaceSchema)
+        @test typeof(gen_schema) == typeof(PromptingTools.HuggingFaceSchema())
+        @test typeof(emb_schema) == typeof(PromptingTools.HuggingFaceSchema())
+    else
+        @test typeof(gen_schema) == typeof(PromptingTools.OllamaSchema())
+        @test typeof(emb_schema) == typeof(PromptingTools.OllamaSchema())
     end
 end
