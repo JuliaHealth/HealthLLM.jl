@@ -19,6 +19,6 @@ import .Database: store_embeddings_pgvector
 import .Query: generate_funsql_query
 
 export collect_files_with_extensions, write_combined_file, generate_funsql_query,
-build_index_rag, store_embeddings_pgvector
+build_index_rag, store_embeddings_pgvector, register_models
 
 end
