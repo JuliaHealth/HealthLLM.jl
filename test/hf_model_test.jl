@@ -7,13 +7,13 @@ using PromptingTools
 using RAGTools
 
 @testset "HuggingFace model support" begin
-    if !isdefined(PromptingTools, :HuggingFaceSchema)
-        @testskip "PromptingTools does not provide HuggingFaceSchema; skipping HF integration tests."
-    end
-
     # Schema detection should return a HuggingFaceSchema for HF-like model strings
     hf_schema = Utils.get_schema(nothing, "hf:facebook/opt-350m")
-    @test typeof(hf_schema) == typeof(PromptingTools.HuggingFaceSchema())
+    if isdefined(PromptingTools, :HuggingFaceSchema)
+        @test typeof(hf_schema) == typeof(PromptingTools.HuggingFaceSchema())
+    else
+        @test typeof(hf_schema) == typeof(PromptingTools.OllamaSchema())
+    end
 
     # Register models should set global model names
     HealthLLM.register_models("hf:facebook/opt-350m", "hf:sentence-transformers/all-mpnet-base-v2")

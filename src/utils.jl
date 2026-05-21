@@ -20,9 +20,13 @@ function get_schema(schema_name::Union{Nothing,String}=nothing, model::Union{Not
     if model !== nothing
         low = lowercase(model)
         if startswith(low, "hf:") || occursin("huggingface", low) || occursin("hf/", low) || occursin("hf-", low)
+            # Prefer an existing HuggingFaceSchema from PromptingTools
             if isdefined(PromptingTools, :HuggingFaceSchema)
                 return PromptingTools.HuggingFaceSchema()
             end
+
+            # If PromptingTools doesn't provide a HuggingFaceSchema, fall back to OllamaSchema
+            return PromptingTools.OllamaSchema()
         end
     end
 
