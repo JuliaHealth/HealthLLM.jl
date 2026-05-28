@@ -7,12 +7,12 @@ ti = time()
 
 @testset "HealthLLM tests" begin
     include("UnitTests.jl")
-
     if get(ENV, "HEALTHLLM_RUN_INTEGRATION_TESTS", "false") == "true"
         include("FunSQLTest.jl")
     else
         @info "Skipping integration tests. Set HEALTHLLM_RUN_INTEGRATION_TESTS=true to enable."
     end
+    include("hf_model_test.jl")
 end
 
 ti = time() - ti
