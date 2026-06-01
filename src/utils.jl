@@ -17,11 +17,7 @@ function clear_progress!()
 end
 
 function report_progress(current::Int, total::Int; msg::String="")
-    try
-        PROGRESS_CB[](current, total, msg)
-    catch err
-        # swallow errors from progress callback to avoid breaking workflows
-    end
+    PROGRESS_CB[](current, total, msg)
     return nothing
 end
 

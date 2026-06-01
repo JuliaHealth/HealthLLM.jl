@@ -158,11 +158,11 @@ Returns a Dict with metrics and a vector of failure details.
 """
 function run_benchmark(model_name::String, model_embedding::String, synthea_db_path::String, funsql_jsonl_path::String; prompt_template::String="Write a valid FunSQL.jl expression that implements the following natural language query:\n\n{input_query}\n\nReturn only the FunSQL.jl expression (no surrounding text).", sample_limit::Int=0)
     # lazy load dataset
-    data = try
-        load_jsonl(funsql_jsonl_path)
-    catch
-        # try to parse as plain JSON array
-        JSON3.read(read(funsql_jsonl_path, String))
+    # load as jsonl; if file is a JSON array, fallback to parse whole file
+    data = load_jsonl(funsql_jsonl_path)
+    if isempty(data)
+        # maybe a JSON array
+        data = JSON3.read(read(funsql_jsonl_path, String))
     end
 
     # ensure models are registered with PromptingTools
@@ -204,43 +204,29 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
         t0 = now()
         # prepare placeholder for generated code so failures can include it
         funsql_code = ""
-        # report progress via Utils.report_progress if registered
-        try
-            Utils.report_progress(total+1, length(data); msg = "Running example")
-        catch
-            # ignore
-        end
+        # report progress via Utils.report_progress
+        Utils.report_progress(total+1, length(data); msg = "Running example")
         # call generator via HealthLLM API (uses Query.generate_funsql_query internally)
-        try
-            # Query.generate_funsql_query is expected to exist (registered via HealthLLM)
-            resp = HealthLLM.generate_funsql_query(i, model_embedding, model_name, prompt_template, String(nl))
-            funsql_code = extract_code(String(resp))
+        # Query.generate_funsql_query is expected to exist (registered via HealthLLM)
+        resp = HealthLLM.generate_funsql_query(i, model_embedding, model_name, prompt_template, String(nl))
+        funsql_code = extract_code(String(resp))
 
-            # Evaluate FunSQL expression to obtain query object
-            funsql_query = try
-                eval(Meta.parse(funsql_code))
-            catch e
-                throw(ErrorException("Failed to parse/eval generated FunSQL: $(e)"))
-            end
+        # Evaluate FunSQL expression to obtain query object
+        funsql_query = eval(Meta.parse(funsql_code))
 
-            funsql_sql = FunSQL.render(funsql_query, dialect=FunSQL.SQLDialect(:duckdb))
+        funsql_sql = FunSQL.render(funsql_query, dialect=FunSQL.SQLDialect(:duckdb))
 
-            # Execute both queries
-            if gold_sql === nothing
-                @warn "Example $i has no gold SQL; skipping comparison"
-                continue
-            end
-
-            sql_result = DuckDB.execute(conn, String(gold_sql)) |> DataFrame
-            funsql_result = DuckDB.execute(conn, funsql_sql) |> DataFrame
-
-            # use tolerant comparator
-            is_equal = df_equal(sql_result, funsql_result)
-        catch err
-            is_equal = false
-            funsql_code = get(@__MODULE__, :funsql_code, nothing)
-            push!(failures, Dict("index"=>i, "error"=>string(err), "nl"=>String(nl), "funsql_code"=>funsql_code, "gold_sql"=>gold_sql))
+        # Execute both queries
+        if gold_sql === nothing
+            @warn "Example $i has no gold SQL; skipping comparison"
+            continue
         end
+
+        sql_result = DuckDB.execute(conn, String(gold_sql)) |> DataFrame
+        funsql_result = DuckDB.execute(conn, funsql_sql) |> DataFrame
+
+        # use tolerant comparator
+        is_equal = df_equal(sql_result, funsql_result)
 
         if is_equal
             correct += 1
