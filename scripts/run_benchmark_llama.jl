@@ -61,11 +61,7 @@ function main()
     # if file looks like a single-line JSON array, parse to get length
     if detected_len <= 1
         arr = JSON3.read(read(funsql_path, String))
-        try
-            detected_len = length(arr)
-        catch
-            # leave detected_len as-is
-        end
+        detected_len = length(arr)
     end
 
     total_examples = sample_limit > 0 ? min(sample_limit, detected_len) : detected_len
