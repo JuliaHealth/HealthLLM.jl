@@ -49,29 +49,34 @@ function main()
     println("Registering models with PromptingTools...")
     HealthLLM.register_models(model_name, model_embedding)
 
-    # register a simple console progress display
-    HealthLLM.register_progress!((current,total,msg)->begin
-        if HAS_PROGRESS
-            # ProgressMeter will be used separately
-            return
-        else
-            print('\r')
-            print("$current/$total ")
-            if !isempty(msg)
-                print("- $msg")
+    # detect number of examples in FunSQL dataset to set progress total
+    detected_len = 0
+    open(funsql_path, "r") do io
+        for line in eachline(io)
+            if !isempty(strip(line))
+                detected_len += 1
             end
-            flush(stdout)
         end
-    end)
-
-    # if ProgressMeter available, create a meter and register callback to update it
-    pm = nothing
-    if HAS_PROGRESS
-        pm = Progress(sample_limit>0 ? sample_limit : 100, 1; show_eta=true)
-        HealthLLM.register_progress!((current,total,msg)->begin
-            ProgressMeter.next!(pm)
-        end)
     end
+    # if file looks like a single-line JSON array, parse to get length
+    if detected_len <= 1
+        arr = JSON3.read(read(funsql_path, String))
+        try
+            detected_len = length(arr)
+        catch
+            # leave detected_len as-is
+        end
+    end
+
+    total_examples = sample_limit > 0 ? min(sample_limit, detected_len) : detected_len
+
+    # create ProgressMeter with exact total and register a callback to update it
+    pm = Progress(total_examples; show_eta=true)
+    HealthLLM.register_progress!((current,total,msg)->begin
+        # set the meter to current (clamp to total)
+        v = clamp(current, 0, total_examples)
+        ProgressMeter.update!(pm, v)
+    end)
 
     println("Starting benchmark run...")
     res = HealthLLM.run_benchmark(model_name, model_embedding, synthea_path, funsql_path; sample_limit=sample_limit)
