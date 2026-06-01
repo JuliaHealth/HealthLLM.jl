@@ -10,13 +10,9 @@ using HuggingFaceHub
 const HF = HuggingFaceHub
 using JSON3
 using Dates
-# optional progress bar
-try
-    using ProgressMeter
-    const HAS_PROGRESS = true
-catch
-    const HAS_PROGRESS = false
-end
+# progress bar (required)
+using ProgressMeter
+const HAS_PROGRESS = true
 
 function download_datasets(; synthea_path::Union{Nothing,String}=nothing, funsql_path::Union{Nothing,String}=nothing)
     # If caller provided paths, prefer those
