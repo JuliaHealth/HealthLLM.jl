@@ -6,7 +6,8 @@
 #   julia scripts/run_benchmark_llama.jl "meta-llama/Llama-2-7b-chat-hf" "sentence-transformers/all-MiniLM-L6-v2" 20
 
 using HealthLLM
-using HuggingFaceHub as HF
+using HuggingFaceHub
+const HF = HuggingFaceHub
 using JSON3
 using Dates
 
