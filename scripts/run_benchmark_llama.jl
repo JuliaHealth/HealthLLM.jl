@@ -10,6 +10,13 @@ using HuggingFaceHub
 const HF = HuggingFaceHub
 using JSON3
 using Dates
+# optional progress bar
+try
+    using ProgressMeter
+    const HAS_PROGRESS = true
+catch
+    const HAS_PROGRESS = false
+end
 
 function download_datasets(; synthea_path::Union{Nothing,String}=nothing, funsql_path::Union{Nothing,String}=nothing)
     # If caller provided paths, prefer those
@@ -46,9 +53,34 @@ function main()
     println("Registering models with PromptingTools...")
     HealthLLM.register_models(model_name, model_embedding)
 
+    # register a simple console progress display
+    HealthLLM.register_progress!((current,total,msg)->begin
+        if HAS_PROGRESS
+            # ProgressMeter will be used separately
+            return
+        else
+            print('\r')
+            print("$current/$total ")
+            if !isempty(msg)
+                print("- $msg")
+            end
+            flush(stdout)
+        end
+    end)
+
+    # if ProgressMeter available, create a meter and register callback to update it
+    pm = nothing
+    if HAS_PROGRESS
+        pm = Progress(sample_limit>0 ? sample_limit : 100, 1; show_eta=true)
+        HealthLLM.register_progress!((current,total,msg)->begin
+            ProgressMeter.next!(pm)
+        end)
+    end
+
     println("Starting benchmark run...")
     res = HealthLLM.run_benchmark(model_name, model_embedding, synthea_path, funsql_path; sample_limit=sample_limit)
 
+    println() # newline after progress
     println("Metrics:")
     println(JSON3.write(res["metrics"]))
 
