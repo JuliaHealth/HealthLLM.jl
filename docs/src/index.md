@@ -10,5 +10,5 @@ Documentation for [HealthLLM](https://github.com/ParamThakkar123/HealthLLM.jl).
 ```
 
 ```@autodocs
-Modules = [HealthLLM]
+Modules = [HealthLLM, HealthLLM.Utils]
 ```
