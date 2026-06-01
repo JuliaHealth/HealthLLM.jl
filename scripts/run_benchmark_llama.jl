@@ -5,9 +5,6 @@
 # Example:
 #   julia scripts/run_benchmark_llama.jl "meta-llama/Llama-2-7b-chat-hf" "sentence-transformers/all-MiniLM-L6-v2" 20
 
-using DrWatson
-@quickactivate "HealthLLM"
-
 using HealthLLM
 using HuggingFaceHub as HF
 using JSON3
