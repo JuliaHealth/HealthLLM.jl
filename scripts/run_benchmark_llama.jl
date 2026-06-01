@@ -13,8 +13,14 @@ using HuggingFaceHub as HF
 using JSON3
 using Dates
 
-function download_datasets()
-    println("Downloading datasets from HuggingFace...")
+function download_datasets(; synthea_path::Union{Nothing,String}=nothing, funsql_path::Union{Nothing,String}=nothing)
+    # If caller provided paths, prefer those
+    if synthea_path !== nothing && funsql_path !== nothing
+        println("Using provided dataset paths.")
+        return synthea_path, funsql_path
+    end
+
+    println("Downloading datasets from HuggingFace (or using local cache)...")
     synthea_ds = HF.info(HF.Dataset, "JuliaHealthOrg/JuliaHealthDatasets")
     funsql_ds = HF.info(HF.Dataset, "JuliaHealthOrg/FunSQLQueries")
 
@@ -33,7 +39,11 @@ function main()
     println("Embedding model: $model_embedding")
     println("Sample limit: $sample_limit")
 
-    synthea_path, funsql_path = download_datasets()
+    # Allow overriding dataset paths via ARGS (positions 4 and 5)
+    provided_synthea = length(ARGS) >= 4 ? ARGS[4] : nothing
+    provided_funsql = length(ARGS) >= 5 ? ARGS[5] : nothing
+
+    synthea_path, funsql_path = download_datasets(synthea_path=provided_synthea, funsql_path=provided_funsql)
 
     println("Registering models with PromptingTools...")
     HealthLLM.register_models(model_name, model_embedding)
