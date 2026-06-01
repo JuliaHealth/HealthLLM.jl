@@ -204,6 +204,12 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
         t0 = now()
         # prepare placeholder for generated code so failures can include it
         funsql_code = ""
+        # report progress via Utils.report_progress if registered
+        try
+            Utils.report_progress(total+1, length(data); msg = "Running example")
+        catch
+            # ignore
+        end
         # call generator via HealthLLM API (uses Query.generate_funsql_query internally)
         try
             # Query.generate_funsql_query is expected to exist (registered via HealthLLM)

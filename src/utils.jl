@@ -2,6 +2,29 @@ module Utils
 
 using PromptingTools
 
+# Progress callback storage. The callback should accept three arguments:
+#   current::Int, total::Int, msg::String
+const PROGRESS_CB = Ref{Function}(x->nothing)
+
+function register_progress!(f::Function)
+    PROGRESS_CB[] = f
+    return nothing
+end
+
+function clear_progress!()
+    PROGRESS_CB[] = (x,y,z)->nothing
+    return nothing
+end
+
+function report_progress(current::Int, total::Int; msg::String="")
+    try
+        PROGRESS_CB[](current, total, msg)
+    catch err
+        # swallow errors from progress callback to avoid breaking workflows
+    end
+    return nothing
+end
+
 function collect_files_with_extensions(directory::String, extensions::Vector{String})
     files = String[]
     for (root, _, file_names) in walkdir(directory)
