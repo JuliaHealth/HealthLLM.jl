@@ -173,6 +173,7 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
     total = 0
     correct = 0
     failures = Vector{Dict}()
+    example_details = Vector{Dict}()
 
     start_time = now()
 
@@ -206,27 +207,41 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
         funsql_code = ""
         # report progress via Utils.report_progress
         Utils.report_progress(total+1, length(data); msg = "Running example")
-        # call generator via HealthLLM API (uses Query.generate_funsql_query internally)
-        # Query.generate_funsql_query is expected to exist (registered via HealthLLM)
-        resp = HealthLLM.generate_funsql_query(i, model_embedding, model_name, prompt_template, String(nl))
-        funsql_code = extract_code(String(resp))
+        # Run the example and record timing and status; capture per-example failures but continue
+        ok = false
+        errstr = nothing
+        row_time = 0.0
+        try
+            # call generator via HealthLLM API (uses Query.generate_funsql_query internally)
+            resp = HealthLLM.generate_funsql_query(i, model_embedding, model_name, prompt_template, String(nl))
+            funsql_code = extract_code(String(resp))
 
-        # Evaluate FunSQL expression to obtain query object
-        funsql_query = eval(Meta.parse(funsql_code))
+            # Evaluate FunSQL expression to obtain query object
+            funsql_query = eval(Meta.parse(funsql_code))
 
-        funsql_sql = FunSQL.render(funsql_query, dialect=FunSQL.SQLDialect(:duckdb))
+            funsql_sql = FunSQL.render(funsql_query, dialect=FunSQL.SQLDialect(:duckdb))
 
-        # Execute both queries
-        if gold_sql === nothing
-            @warn "Example $i has no gold SQL; skipping comparison"
-            continue
+            # Execute both queries
+            if gold_sql === nothing
+                @warn "Example $i has no gold SQL; skipping comparison"
+                throw(ErrorException("no_gold_sql"))
+            end
+
+            sql_result = DuckDB.execute(conn, String(gold_sql)) |> DataFrame
+            funsql_result = DuckDB.execute(conn, funsql_sql) |> DataFrame
+
+            # use tolerant comparator
+            is_equal = df_equal(sql_result, funsql_result)
+            ok = is_equal
+        catch err
+            ok = false
+            errstr = string(err)
+        finally
+            row_time = Dates.value(now() - t0)/1e9
+            push!(example_details, Dict("index"=>i, "duration_seconds"=>row_time, "ok"=>ok, "error"=>errstr, "nl"=>String(nl), "funsql_code"=>funsql_code, "gold_sql"=>gold_sql))
         end
 
-        sql_result = DuckDB.execute(conn, String(gold_sql)) |> DataFrame
-        funsql_result = DuckDB.execute(conn, funsql_sql) |> DataFrame
-
-        # use tolerant comparator
-        is_equal = df_equal(sql_result, funsql_result)
+        is_equal = ok
 
         if is_equal
             correct += 1
@@ -247,7 +262,7 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
         "elapsed_seconds" => Dates.value(elapsed)/1e9
     )
 
-    return Dict("metrics"=>metrics, "failures"=>failures)
+    return Dict("metrics"=>metrics, "failures"=>failures, "examples"=>example_details)
 end
 
 end # module
