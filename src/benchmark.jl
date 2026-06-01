@@ -6,6 +6,7 @@ using DataFrames
 using FunSQL
 using Statistics
 using Dates
+using Tables
 
 """
 Extract a code block from a model response. If a triple-backtick block exists, return its contents,
@@ -40,6 +41,90 @@ function load_jsonl(path::String)
         end
     end
     return objs
+end
+
+function df_is_numeric_column(colvec)
+    # treat as numeric if element type is a subtype of Real or all non-missing elements are Real
+    et = eltype(colvec)
+    if et <: Real
+        return true
+    end
+    # fallback: inspect values
+    for v in colvec
+        if v === missing
+            continue
+        end
+        if !(v isa Real)
+            return false
+        end
+    end
+    return true
+end
+
+function df_equal(df1::DataFrame, df2::DataFrame; atol::Float64=1e-9, rtol::Float64=1e-6, sort_rows::Bool=true)
+    # ensure same columns
+    cols1 = names(df1)
+    cols2 = names(df2)
+    if length(cols1) != length(cols2) || Set(cols1) != Set(cols2)
+        return false
+    end
+
+    # reorder df2 to match df1
+    if cols1 != cols2
+        df2 = df2[:, cols1]
+    end
+
+    # optional: sort rows by all columns to make order-invariant comparisons
+    if sort_rows
+        # convert to vector of column names for sort
+        df1 = sort(df1, cols1)
+        df2 = sort(df2, cols1)
+    end
+
+    # compare number of rows
+    if nrow(df1) != nrow(df2)
+        return false
+    end
+
+    n = nrow(df1)
+    for col in cols1
+        col1 = df1[!, col]
+        col2 = df2[!, col]
+
+        if df_is_numeric_column(col1) && df_is_numeric_column(col2)
+            for i in 1:n
+                v1 = col1[i]
+                v2 = col2[i]
+                if v1 === missing && v2 === missing
+                    continue
+                elseif v1 === missing || v2 === missing
+                    return false
+                else
+                    # compare numerically
+                    if !isapprox(float(v1), float(v2); atol=atol, rtol=rtol)
+                        return false
+                    end
+                end
+            end
+        else
+            # non-numeric: compare with == (handles strings, bools, etc.)
+            for i in 1:n
+                v1 = col1[i]
+                v2 = col2[i]
+                if v1 === missing && v2 === missing
+                    continue
+                elseif v1 === missing || v2 === missing
+                    return false
+                else
+                    if v1 != v2
+                        return false
+                    end
+                end
+            end
+        end
+    end
+
+    return true
 end
 
 function choose_nl_field(row::Dict)
@@ -143,7 +228,8 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
             sql_result = DuckDB.execute(conn, String(gold_sql)) |> DataFrame
             funsql_result = DuckDB.execute(conn, funsql_sql) |> DataFrame
 
-            is_equal = isequal(sql_result, funsql_result)
+            # use tolerant comparator
+            is_equal = df_equal(sql_result, funsql_result)
         catch err
             is_equal = false
             funsql_code = get(@__MODULE__, :funsql_code, nothing)
