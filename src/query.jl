@@ -3,12 +3,15 @@ module Query
 using PromptingTools
 using RAGTools
 
+# Use the sibling Utils module from the parent HealthLLM module for schema helpers
+using ..Utils: get_schema
+
 function generate_funsql_query(index, model_embedding::String, model_name::String, prompt_template::String, question::String)
     prompt = replace(prompt_template, "{input_query}" => question)
 
     # infer appropriate schemas for generator and retriever (supports HuggingFace, Ollama, etc.)
-    gen_schema = Utils.get_schema(nothing, model_name)
-    emb_schema = Utils.get_schema(nothing, model_embedding)
+    gen_schema = get_schema(nothing, model_name)
+    emb_schema = get_schema(nothing, model_embedding)
 
     answer = RAGTools.airag(index;
         question=prompt,

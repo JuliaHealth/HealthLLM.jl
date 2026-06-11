@@ -7,6 +7,9 @@ using FunSQL
 using Statistics
 using Dates
 using Tables
+using HealthLLM
+# import the progress reporter from the sibling Utils module (parent is HealthLLM)
+using ..Utils: report_progress
 
 """
 Extract a code block from a model response. If a triple-backtick block exists, return its contents,
@@ -128,16 +131,70 @@ function df_equal(df1::DataFrame, df2::DataFrame; atol::Float64=1e-9, rtol::Floa
 end
 
 function choose_nl_field(row::Dict)
-    candidates = ["question", "query", "nl", "natural_language", "utterance", "text", "english", "question_text"]
+    # Candidate keys commonly used for natural-language queries
+    candidates = ["question", "query", "nl", "natural_language", "utterance", "text", "english",
+                  "question_text", "instruction", "prompt", "input", "content", "message", "messages"]
+    # Keys that look like gold answers / should be ignored
+    exclude = Set(["sql_query", "sql", "gold_sql", "funsql_code"])
+
+    # Try explicit candidate keys first and ensure they contain non-empty text.
     for k in candidates
         if haskey(row, k)
-            return row[k]
+            v = row[k]
+            # plain string
+            if isa(v, AbstractString)
+                s = strip(String(v))
+                if !isempty(s)
+                    return s
+                end
+            # nested object (Dict or NamedTuple) - look for text-like fields
+            elseif isa(v, Dict) || isa(v, NamedTuple)
+                for kk in ["text", "content", "instruction", "prompt", "utterance"]
+                    if haskey(v, kk)
+                        s = strip(String(v[kk]))
+                        if !isempty(s)
+                            return s
+                        end
+                    end
+                end
+            # array of messages (e.g. chat format)
+            elseif isa(v, AbstractVector) && !isempty(v)
+                # collect content/text from elements that are dict-like
+                parts = String[]
+                for el in v
+                    if isa(el, Dict) || isa(el, NamedTuple)
+                        if haskey(el, "content")
+                            push!(parts, String(el["content"]))
+                        elseif haskey(el, "text")
+                            push!(parts, String(el["text"]))
+                        end
+                    elseif isa(el, AbstractString)
+                        push!(parts, String(el))
+                    end
+                end
+                if !isempty(parts)
+                    s = strip(join(parts, "\n"))
+                    if !isempty(s)
+                        return s
+                    end
+                end
+            end
         end
     end
-    # fallback heuristics
-    if haskey(row, "question_text")
-        return row["question_text"]
+
+    # Fallback: find the first string-like field that doesn't look like gold SQL
+    for (k, v) in row
+        if k in exclude
+            continue
+        end
+        if isa(v, AbstractString)
+            s = strip(String(v))
+            if !isempty(s)
+                return s
+            end
+        end
     end
+
     return nothing
 end
 
@@ -168,7 +225,9 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
     # ensure models are registered with PromptingTools
     HealthLLM.register_models(model_name, model_embedding)
 
-    conn = DuckDB.DB(synthea_db_path)
+    # Open the DuckDB file in read-only mode to avoid exclusive locks
+    # (helps when another process like Git has the file open)
+    conn = DuckDB.DB(synthea_db_path; readonly=true)
 
     total = 0
     correct = 0
@@ -193,6 +252,8 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
                 nl = row["nl"]
             elseif haskey(row, "question")
                 nl = row["question"]
+            elseif haskey(row, "sql_query")
+                nl = row["sql_query"]
             else
                 @warn "Skipping example $i: no natural language field found"
                 continue
@@ -205,14 +266,14 @@ function run_benchmark(model_name::String, model_embedding::String, synthea_db_p
         t0 = now()
         # prepare placeholder for generated code so failures can include it
         funsql_code = ""
-        # report progress via Utils.report_progress
-        Utils.report_progress(total+1, length(data); msg = "Running example")
+        # report progress via the registered progress callback on the HealthLLM.Utils module
+        HealthLLM.Utils.report_progress(total+1, length(data); msg = "Running example")
         # Run the example and record timing and status; capture per-example failures but continue
         ok = false
         errstr = nothing
         row_time = 0.0
         try
-            # call generator via HealthLLM API (uses Query.generate_funsql_query internally)
+            # call generator via the HealthLLM package API (uses Query.generate_funsql_query internally)
             resp = HealthLLM.generate_funsql_query(i, model_embedding, model_name, prompt_template, String(nl))
             funsql_code = extract_code(String(resp))
 

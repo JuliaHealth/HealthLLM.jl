@@ -12,21 +12,167 @@ using JSON3
 using Dates
 # progress bar (required)
 using ProgressMeter
+using HTTP
 const HAS_PROGRESS = true
 
 function download_datasets(; synthea_path::Union{Nothing,String}=nothing, funsql_path::Union{Nothing,String}=nothing)
-    # If caller provided paths, prefer those
+    # Allow using local copies of datasets if present on disk
+    local_default_synthea = "E:\\HealthLLM.jl\\synthea_1M_3YR.duckdb"
+    if synthea_path === nothing && isfile(local_default_synthea)
+        println("Found local Synthea duckdb at: $local_default_synthea; using it.")
+        synthea_path = local_default_synthea
+    end
+
+    # Prefer a locally checked-out FunSQL dataset when available
+    local_default_funsql = "E:\\HealthLLM.jl\\FunSQLQueries\\train.jsonl"
+    if funsql_path === nothing && isfile(local_default_funsql)
+        println("Found local FunSQL dataset at: $local_default_funsql; using it.")
+        funsql_path = local_default_funsql
+    end
+
+    # If caller provided both paths, prefer those
     if synthea_path !== nothing && funsql_path !== nothing
         println("Using provided dataset paths.")
         return synthea_path, funsql_path
     end
 
     println("Downloading datasets from HuggingFace (or using local cache)...")
-    synthea_ds = HF.info(HF.Dataset, "JuliaHealthOrg/JuliaHealthDatasets")
-    funsql_ds = HF.info(HF.Dataset, "JuliaHealthOrg/FunSQLQueries")
+    synthea_name = "JuliaHealthOrg/JuliaHealthDatasets"
+    funsql_name = "JuliaHealthOrg/FunSQLQueries"
+    synthea_ds = HF.info(HF.Dataset, synthea_name)
+    funsql_ds = HF.info(HF.Dataset, funsql_name)
 
-    synthea_dataset_path = HF.file_download(synthea_ds, "synthea_1M_3YR.duckdb")
-    funsql_dataset_path = HF.file_download(funsql_ds, "train.jsonl")
+    # show which files will be downloaded and where they will be stored
+    println("Will download (only missing files):")
+    println(" - $synthea_name -> synthea_1M_3YR.duckdb")
+    println(" - $funsql_name -> train.jsonl")
+
+    # helper: attempt a streaming HTTP download with per-file progress
+    function try_stream_download(repo::String, filename::String)
+        candidates = [
+            "https://huggingface.co/datasets/$repo/resolve/main/$filename",
+            "https://huggingface.co/$repo/resolve/main/$filename",
+            "https://huggingface.co/datasets/$repo/resolve/refs/heads/main/$filename"
+        ]
+
+        for url in candidates
+            try
+                # Try HEAD first to learn content length
+                head_res = try
+                    HTTP.request("HEAD", url)
+                catch
+                    nothing
+                end
+
+                total_bytes = nothing
+                if head_res !== nothing && head_res.status == 200
+                    clen = get(head_res.headers, "Content-Length", nothing)
+                    if clen !== nothing
+                        try
+                            total_bytes = parse(Int, String(clen))
+                        catch
+                            total_bytes = nothing
+                        end
+                    end
+                end
+
+                dest = abspath(filename)
+                println("Attempting download: $filename from $url -> $dest")
+
+                # Create a Progress instance in a way compatible with multiple
+                # ProgressMeter versions. Older versions may not accept the
+                # `show_eta` keyword, so try the full call first and fall back
+                # to a minimal constructor when necessary.
+                function _make_progress(n)
+                    try
+                        return Progress(n; show_eta=true)
+                    catch
+                        return Progress(n)
+                    end
+                end
+
+                pm_file = total_bytes !== nothing ? _make_progress(total_bytes) : _make_progress(1)
+
+                # Stream GET
+                try
+                    HTTP.open(:GET, url) do stream_io
+                        open(dest, "w") do out_io
+                            bytes_written = 0
+                            while !eof(stream_io)
+                                chunk = read(stream_io, 65536)
+                                if isempty(chunk)
+                                    break
+                                end
+                                write(out_io, chunk)
+                                bytes_written += length(chunk)
+                                try
+                                    if total_bytes !== nothing
+                                        ProgressMeter.update!(pm_file, bytes_written)
+                                    else
+                                        ProgressMeter.update!(pm_file)
+                                    end
+                                catch
+                                    # ignore progress update failures
+                                end
+                            end
+                        end
+                    end
+                catch err
+                    @warn "GET streaming failed for $url: $err"
+                    continue
+                end
+
+                println("Finished downloading $filename to $dest")
+                return dest
+            catch err
+                @warn "Stream download attempt failed for $url: $err"
+            end
+        end
+
+        # fallback to HuggingFaceHub.file_download if available
+        try
+            if isdefined(HF, :file_download)
+                info = HF.info(HF.Dataset, repo)
+                dest = HF.file_download(info, filename)
+                println("Downloaded $filename via HuggingFaceHub.file_download -> $dest")
+                return dest
+            end
+        catch err
+            @warn "HuggingFaceHub.file_download fallback failed: $err"
+        end
+
+        error("Could not download $filename from repository $repo")
+    end
+
+    # overall download progress across both dataset files
+    # Use the same compatibility helper to construct the meter.
+    function _make_progress(n)
+        try
+            return Progress(n; show_eta=true)
+        catch
+            return Progress(n)
+        end
+    end
+
+    # Determine how many files we actually need to download
+    need_synthea = synthea_path === nothing
+    need_funsql = funsql_path === nothing
+    total_to_download = (need_synthea ? 1 : 0) + (need_funsql ? 1 : 0)
+    pm = _make_progress(max(total_to_download, 1))
+
+    synthea_dataset_path = synthea_path
+    if need_synthea
+        synthea_dataset_path = try_stream_download(synthea_name, "synthea_1M_3YR.duckdb")
+        ProgressMeter.update!(pm, 1)
+    end
+
+    funsql_dataset_path = funsql_path
+    if need_funsql
+        # if we already downloaded synthea, update progress position for the second file
+        offset = need_synthea ? 2 : 1
+        funsql_dataset_path = try_stream_download(funsql_name, "train.jsonl")
+        ProgressMeter.update!(pm, offset)
+    end
 
     return synthea_dataset_path, funsql_dataset_path
 end
@@ -67,7 +213,16 @@ function main()
     total_examples = sample_limit > 0 ? min(sample_limit, detected_len) : detected_len
 
     # create ProgressMeter with exact total and register a callback to update it
-    pm = Progress(total_examples; show_eta=true)
+    # Use a compatibility constructor to avoid passing unsupported keywords.
+    function _make_progress(n)
+        try
+            return Progress(n; show_eta=true)
+        catch
+            return Progress(n)
+        end
+    end
+
+    pm = _make_progress(total_examples)
     HealthLLM.register_progress!((current,total,msg)->begin
         # set the meter to current (clamp to total)
         v = clamp(current, 0, total_examples)
