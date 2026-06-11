@@ -7,3 +7,10 @@
 .env
 .env.example
 JuliaHealthLLM_exp_raw_combined.txt
+
+# benchmark/data files
+benchmark_result_*.json
+synthea_1M_3YR.duckdb
+train.jsonl
+nul
+FunSQLQueries/

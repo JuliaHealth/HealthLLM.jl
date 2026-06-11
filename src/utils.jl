@@ -2,6 +2,25 @@ module Utils
 
 using PromptingTools
 
+# Progress callback storage. The callback should accept three arguments:
+#   current::Int, total::Int, msg::String
+const PROGRESS_CB = Ref{Function}(x->nothing)
+
+function register_progress!(f::Function)
+    PROGRESS_CB[] = f
+    return nothing
+end
+
+function clear_progress!()
+    PROGRESS_CB[] = (x,y,z)->nothing
+    return nothing
+end
+
+function report_progress(current::Int, total::Int; msg::String="")
+    PROGRESS_CB[](current, total, msg)
+    return nothing
+end
+
 """
 Return a PromptingTools schema instance inferred from `schema_name` or `model`.
 Tries to construct `<Name>Schema()` from PromptingTools when available, falls
@@ -91,6 +110,7 @@ function load_huggingface_model(model::String; token::Union{Nothing,String}=noth
     @warn "HuggingFaceHub.jl not available — returning model string. Install HuggingFaceHub.jl for direct downloads."
     return HuggingFaceLoadResult(nothing, model, false)
 end
+
 function collect_files_with_extensions(directory::String, extensions::Vector{String})
     files = String[]
     for (root, _, file_names) in walkdir(directory)
@@ -131,55 +151,8 @@ function register_models(model_name::String, model_embedding::String; schema_nam
     PromptingTools.MODEL_EMBEDDING = model_embedding
 end
 
-"""
-Download and load a HuggingFace model by name using HuggingFaceHub.jl when
-available. Returns the local path or object depending on helper availability.
-
-Examples:
-    load_huggingface_model("gpt2")
-    load_huggingface_model("facebook/opt-350m")
-"""
-function load_huggingface_model(model::String; token::Union{Nothing,String}=nothing)
-    # Prefer using HuggingFaceHub.jl if it's available
-    if isdefined(Main, :HuggingFaceHub)
-        try
-            # Try to use a generic download helper if available
-            HF = Main.HuggingFaceHub
-            if isdefined(HF, :snapshot) # newer helper
-                if token === nothing
-                    return HF.snapshot(model)
-                else
-                    return HF.snapshot(model; token=token)
-                end
-            elseif isdefined(HF, :repo_download) # alternative helper name
-                if token === nothing
-                    return HF.repo_download(model)
-                else
-                    return HF.repo_download(model; token=token)
-                end
-            else
-                # Fallback: use HF.info + HF.file_download for specific files if needed
-                try
-                    info = HF.info(HF.Model, model)
-                    # If model has a default file like "pytorch_model.bin" try downloading it
-                    if isdefined(HF, :file_download)
-                        # Prefer downloading the whole repo snapshot if helper exists
-                        return HF.file_download(info, ".")
-                    else
-                        return info
-                    end
-                catch err
-                    @warn "HuggingFaceHub helpers present but download failed: $err"
-                end
-            end
-        catch err
-            @warn "HuggingFaceHub.jl present but operation failed: $err"
-        end
-    end
-
-    # As a last resort, return the model string so callers can use HF inference API
-    @warn "HuggingFaceHub.jl not available — returning model string. Install HuggingFaceHub.jl for direct downloads."
-    return model
-end
+# NOTE: A single helper `load_huggingface_model` is defined above which
+# returns a `HuggingFaceLoadResult`. Avoid redefining it here to prevent
+# method overwriting during module precompilation.
 
 end

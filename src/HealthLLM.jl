@@ -12,13 +12,16 @@ include("pgvector.jl")
 include("database.jl")
 include("embedding.jl")
 include("query.jl")
+include("benchmark.jl")
 
-import .Utils: collect_files_with_extensions, write_combined_file, register_models, load_huggingface_model, HuggingFaceLoadResult
+import .Utils: collect_files_with_extensions, write_combined_file, register_models, register_progress!, clear_progress!, load_huggingface_model, HuggingFaceLoadResult
 import .Embedding: build_index_rag
 import .Database: store_embeddings_pgvector
 import .Query: generate_funsql_query
+import .Benchmark: run_benchmark
 
 export collect_files_with_extensions, write_combined_file, generate_funsql_query,
-build_index_rag, store_embeddings_pgvector, register_models, load_huggingface_model, HuggingFaceLoadResult
+       build_index_rag, store_embeddings_pgvector, register_models, register_progress!, clear_progress!, load_huggingface_model, HuggingFaceLoadResult
+export run_benchmark
 
 end
