@@ -1,7 +1,6 @@
 import HuggingFaceHub as HF
 using JSON3
 using DuckDB
-using JSON3
 using Test
 using DataFrames
 using FunSQL
