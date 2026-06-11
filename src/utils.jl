@@ -1,6 +1,11 @@
 module Utils
 
 using PromptingTools
+using RAGTools
+
+function build_index_rag(cfg, files; embedder_kwargs=())
+    return RAGTools.build_index(cfg, files; embedder_kwargs=embedder_kwargs)
+end
 
 """
 Return a PromptingTools schema instance inferred from `schema_name` or `model`.
