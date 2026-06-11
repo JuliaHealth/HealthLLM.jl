@@ -24,13 +24,13 @@ import .Query: generate_funsql_query, generate_funsql_query_direct
 import .Grounding: grounding_dir, grounding_files, register_funsql_template!, register_funsql_template_no_context!
 import .Ingestion: build_corpus_index, build_corpus_index_from_files, build_grounding_index
 import .Pipeline: setup_grounding_index, answer_question, answer_question_direct, quick_demo
-import .Benchmark: run_zeroshot, run_rag
+import .Benchmark: run_zeroshot, run_rag, run_comparison, compute_detailed_metrics, compute_retrieval_stats, compute_comparison
 
 export collect_files_with_extensions, write_combined_file, generate_funsql_query, generate_funsql_query_direct,
 build_index_rag, store_embeddings_pgvector, register_models, load_huggingface_model, HuggingFaceLoadResult,
 grounding_dir, grounding_files, register_funsql_template!, register_funsql_template_no_context!,
 build_corpus_index, build_corpus_index_from_files, build_grounding_index,
 setup_grounding_index, answer_question, answer_question_direct, quick_demo,
-run_zeroshot, run_rag
+run_zeroshot, run_rag, run_comparison, compute_detailed_metrics, compute_retrieval_stats, compute_comparison
 
 end
