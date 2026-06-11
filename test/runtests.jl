@@ -11,6 +11,7 @@ ti = time()
 @testset "HealthLLM tests" begin
     include("FunSQLTest.jl")
     include("hf_model_test.jl")
+    include("hf_load_tests.jl")
 end
 
 ti = time() - ti
