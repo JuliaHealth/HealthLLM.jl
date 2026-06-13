@@ -2,7 +2,6 @@ using Aqua
 using HealthLLM
 
 @testset "Aqua.jl quality checks" begin
-    Aqua.test_ambiguities(HealthLLM; exclude=[:Intervals, :Infinity, :Decimals, :InlineStrings])
     Aqua.test_unbound_args(HealthLLM)
     Aqua.test_undefined_exports(HealthLLM)
     Aqua.test_stale_deps(HealthLLM; ignore=["HuggingFaceHub"])
