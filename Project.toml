@@ -1,6 +1,6 @@
 name = "HealthLLM"
 uuid = "1de6b779-c1fb-4125-b891-fad447459241"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["ParamThakkar123 <paramthakkar864@gmail.com> and TheCedarPrince <jacobszelko@gmail.com>"]
 
 [deps]
@@ -8,7 +8,6 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DrWatson = "634d3b9d-ee7a-5ddf-bec9-22491ea816e1"
 DuckDB = "d2f5444f-75bc-4fdf-ac35-56f514c445e1"
 FunSQL = "cf6cc811-59f4-4a10-b258-a8547a8f6407"
-HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 HuggingFaceHub = "d0076355-e2c0-48e6-a044-05906e51b7fc"
 JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
 LibPQ = "194296ae-ab2e-5f79-8cd4-7183a0a5a0d1"
@@ -38,7 +37,8 @@ julia = "1.10"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "Test"]
+test = ["Aqua", "HTTP", "Test"]
