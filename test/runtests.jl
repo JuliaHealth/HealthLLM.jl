@@ -13,7 +13,10 @@ ti = time()
     include("hf_model_test.jl")
     include("hf_load_tests.jl")
     include("benchmark_metrics_test.jl")
+    include("utils_tests.jl")
 end
+
+include("aqua.jl")
 
 ti = time() - ti
 println("\nTest took total time of:")

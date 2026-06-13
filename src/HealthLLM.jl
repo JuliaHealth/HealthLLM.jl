@@ -9,7 +9,6 @@ using Statistics
 
 include("pgvector.jl")
 include("database.jl")
-include("embedding.jl")
 include("huggingface.jl")
 include("local.jl")
 include("utils.jl")
@@ -19,8 +18,7 @@ include("query.jl")
 include("pipeline.jl")
 include("benchmark.jl")
 
-import .Utils: collect_files_with_extensions, write_combined_file, register_models, load_huggingface_model, HuggingFaceLoadResult
-import .Embedding: build_index_rag
+import .Utils: collect_files_with_extensions, write_combined_file, register_models, load_huggingface_model, HuggingFaceLoadResult, build_index_rag
 import .Database: store_embeddings_pgvector
 import .Query: generate_funsql_query, generate_funsql_query_direct
 import .Grounding: grounding_dir, grounding_files, register_funsql_template!, register_funsql_template_no_context!
