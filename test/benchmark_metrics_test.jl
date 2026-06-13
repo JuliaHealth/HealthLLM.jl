@@ -43,6 +43,46 @@ using HealthLLM
 
     df7 = DataFrame(a=[1, 2, 3], b=[1.0 + 1e-4, 2.0, 3.0])
     @test HealthLLM.Benchmark.df_equal(df1, df7; atol=1e-9, rtol=1e-9) == false
+
+    # Missing values
+    df8 = DataFrame(a=[1, missing, 3], b=[1.0, missing, 3.0])
+    df9 = DataFrame(a=[1, missing, 3], b=[1.0, missing, 3.0])
+    @test HealthLLM.Benchmark.df_equal(df8, df9) == true
+
+    df10 = DataFrame(a=[1, missing, 3], b=[1.0, 2.0, 3.0])
+    @test HealthLLM.Benchmark.df_equal(df8, df10) == false
+end
+
+@testset "Benchmark helper functions" begin
+    @testset "_is_numeric" begin
+        @test HealthLLM.Benchmark._is_numeric([1, 2, 3]) == true
+        @test HealthLLM.Benchmark._is_numeric([1.0, 2.0]) == true
+        @test HealthLLM.Benchmark._is_numeric(["a", "b"]) == false
+        @test HealthLLM.Benchmark._is_numeric([1, missing, 3]) == true
+        @test HealthLLM.Benchmark._is_numeric([missing, "a"]) == false
+    end
+
+    @testset "load_jsonl" begin
+        jsonl_path = joinpath(@__DIR__, "..", "FunSQLQueries", "train.jsonl")
+        if isfile(jsonl_path)
+            data = HealthLLM.Benchmark.load_jsonl(jsonl_path)
+            @test data isa Vector
+            @test length(data) > 0
+            first_row = data[1]
+            @test haskey(first_row, "query")
+            @test haskey(first_row, "sql_query")
+            @test haskey(first_row, "response")
+            @test haskey(first_row, "group")
+        end
+    end
+
+    @testset "extract_code edge cases" begin
+        @test HealthLLM.Benchmark.extract_code("```julia\nx = 1\n```") == "x = 1"
+        @test HealthLLM.Benchmark.extract_code("```\nno_lang\n```") == "no_lang"
+        @test HealthLLM.Benchmark.extract_code("text without code blocks") == "text without code blocks"
+        @test HealthLLM.Benchmark.extract_code("") == ""
+        @test HealthLLM.Benchmark.extract_code("```unclosed block") == "unclosed block"
+    end
 end
 
 @testset "Benchmark detailed metrics" begin
