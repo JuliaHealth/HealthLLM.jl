@@ -5,18 +5,11 @@ using PromptingTools
 using RAGTools
 
 println("=" ^ 60)
-println("HealthLLM.jl — Baseline RAG Pipeline Demo (HuggingFace Native)")
+println("HealthLLM.jl — Local RAG Pipeline Demo (PythonCall + sentence-transformers)")
 println("=" ^ 60)
 
-model_embedding = "hf:sentence-transformers/all-mpnet-base-v2"
-model_name = "hf:Qwen/Qwen2.5-Coder-1.5B-Instruct"
-
-HF_TOKEN = get(ENV, "HF_API_TOKEN", get(ENV, "HUGGING_FACE_HUB_TOKEN", ""))
-if isempty(HF_TOKEN)
-    @warn "HF_API_TOKEN not set. Set it to use HuggingFace Inference API."
-    println("  See: https://huggingface.co/settings/tokens")
-end
-HealthLLM.configure_hf_token!(; token=isempty(HF_TOKEN) ? nothing : HF_TOKEN)
+model_embedding = "local:sentence-transformers/all-mpnet-base-v2"
+model_name = "local:Qwen/Qwen2.5-Coder-1.5B-Instruct"
 
 println("\n[1/4] Registering models and schemas...")
 emb_schema = HealthLLM.Utils.get_schema(nothing, model_embedding)

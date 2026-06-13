@@ -5,6 +5,7 @@ using PromptingTools
 using ..Grounding
 using ..Ingestion
 using ..Query
+using ..Utils
 
 function setup_grounding_index(;
                                grounding_dir::Union{String,Nothing}=nothing,
@@ -62,8 +63,10 @@ end
 
 function quick_demo(; model_embedding="hf:sentence-transformers/all-mpnet-base-v2",
                       model_name="hf:Qwen/Qwen2.5-Coder-1.5B-Instruct")
-    PromptingTools.register_model!(name=model_name, schema=PromptingTools.HuggingFaceSchema())
-    PromptingTools.register_model!(name=model_embedding, schema=PromptingTools.HuggingFaceSchema())
+    gen_schema = Utils.get_schema(nothing, model_name)
+    emb_schema = Utils.get_schema(nothing, model_embedding)
+    PromptingTools.register_model!(name=model_name, schema=gen_schema)
+    PromptingTools.register_model!(name=model_embedding, schema=emb_schema)
     PromptingTools.MODEL_CHAT = model_name
     PromptingTools.MODEL_EMBEDDING = model_embedding
 

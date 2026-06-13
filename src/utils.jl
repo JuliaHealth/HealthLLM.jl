@@ -1,11 +1,14 @@
 module Utils
 
 using PromptingTools
+using ..HuggingFaceLLM: HuggingFaceManagedSchema
+using ..LocalLLM: LocalManagedSchema
 
 """
 Return a PromptingTools schema instance inferred from `schema_name` or `model`.
-Tries to construct `<Name>Schema()` from PromptingTools when available, falls
-back to `PromptingTools.OllamaSchema()`.
+Tries to construct `<Name>Schema()` from PromptingTools when available.
+For `hf:`-prefixed models returns `HuggingFaceManagedSchema` (native HuggingFace Inference API).
+Falls back to `PromptingTools.OllamaSchema()`.
 """
 function get_schema(schema_name::Union{Nothing,String}=nothing, model::Union{Nothing,String}=nothing)
     # Prefer an explicit schema name when provided
@@ -16,16 +19,13 @@ function get_schema(schema_name::Union{Nothing,String}=nothing, model::Union{Not
         end
     end
 
-    # Heuristic: if the model string looks like a huggingface model, try HuggingFaceSchema
+    # Heuristic: if the model string looks like a huggingface model, use HuggingFaceManagedSchema
     if model !== nothing
         low = lowercase(model)
-        if startswith(low, "hf:") || occursin("huggingface", low) || occursin("hf/", low) || occursin("hf-", low)
-            for schema_name in [:HuggingFaceSchema, :HuggingFaceManagedSchema]
-                if isdefined(PromptingTools, schema_name)
-                    return getfield(PromptingTools, schema_name)()
-                end
-            end
-            return PromptingTools.OllamaSchema()
+        if startswith(low, "local:")
+            return LocalManagedSchema()
+        elseif startswith(low, "hf:") || occursin("huggingface", low) || occursin("hf/", low) || occursin("hf-", low)
+            return HuggingFaceManagedSchema()
         end
     end
 
