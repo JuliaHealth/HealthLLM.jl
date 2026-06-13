@@ -12,6 +12,7 @@ ti = time()
     include("FunSQLTest.jl")
     include("hf_model_test.jl")
     include("hf_load_tests.jl")
+    include("utils_tests.jl")
 end
 
 include("aqua.jl")
