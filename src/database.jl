@@ -25,7 +25,7 @@ Validate shape consistency between an embedding matrix and associated text chunk
 
 ```julia
 embeddings = rand(384, 10)
-chunks = ["chunk $i" for i in 1:10]
+chunks = ["chunk \$i" for i in 1:10]
 validate_embeddings_inputs(embeddings, chunks, 384)  # passes
 ```
 """
@@ -67,7 +67,7 @@ Create an `embeddings` table in PostgreSQL with pgvector extension and insert al
 ```julia
 conn = LibPQ.Connection("postgresql://user:pass@localhost/db")
 embeddings = rand(384, 10)
-chunks = ["chunk $i" for i in 1:10]
+chunks = ["chunk \$i" for i in 1:10]
 store_embeddings_pgvector(conn, embeddings, chunks, 384)
 ```
 """
