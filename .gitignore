@@ -8,3 +8,7 @@
 .env.example
 JuliaHealthLLM_exp_raw_combined.txt
 cacert.pem
+FunSQLQueries/
+benchmark_result_*
+nul
+synthea_1M_3YR.duckdb

@@ -1,6 +1,9 @@
 module Database
 using LibPQ
-using ..Pgvector: to_pgvector_literal
+
+function _vector_to_pgarray(v::AbstractVector{T}) where T<:Real
+    string("[", join(v, ","), "]")
+end
 
 """
     validate_embeddings_inputs(embeddings, chunks, embedding_dimension)
@@ -91,7 +94,7 @@ function store_embeddings_pgvector(
     try
         for i in axes(dense_embeddings, 2)
             chunk = chunk_text[i]
-            embedding = to_pgvector_literal(@view dense_embeddings[:, i])
+            embedding = _vector_to_pgarray(@view dense_embeddings[:, i])
             LibPQ.execute(conn, """
                 INSERT INTO embeddings (chunk, embedding)
                 VALUES (\$1, \$2)

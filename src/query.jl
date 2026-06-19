@@ -15,9 +15,6 @@ Run retrieval-augmented generation against `index` and return the generated answ
 - `prompt_template::AbstractString`: Template string with `{input_query}` placeholder for the question.
 - `question::AbstractString`: The user's question to answer.
 
-# Keywords
-- `schema=PromptingTools.OllamaSchema()`: The schema configuration for PromptingTools.
-
 # Returns
 The generated answer from the RAG query.
 
@@ -44,14 +41,13 @@ function generate_funsql_query(
 )
 
     prompt = replace(prompt_template, "{input_query}" => question)
+    gen_schema = Utils.get_schema(nothing, model_name)
+    emb_schema = Utils.get_schema(nothing, model_embedding)
+
     answer = RAGTools.airag(index;
         question=prompt,
-        retriever_kwargs=(
-            model=model_embedding,
-            schema=schema,
-            embedder_kwargs=(schema=schema, model=model_embedding)
-        ),
-        generator_kwargs=(model=model_name, schema=schema)
+        retriever_kwargs=(model=model_embedding, schema=emb_schema, embedder_kwargs=(schema=emb_schema, model=model_embedding)),
+        generator_kwargs=(model=model_name, schema=gen_schema)
     )
 
     return answer
