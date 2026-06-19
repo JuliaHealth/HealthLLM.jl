@@ -123,5 +123,5 @@ result = DuckDB.execute(conn, FunSQL.render(query, dialect=FunSQL.SQLDialect(:du
 ```
 
 ```@autodocs
-Modules = [HealthLLM, HealthLLM.Utils]
+Modules = [HealthLLM, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Query]
 ```
