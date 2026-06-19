@@ -2,6 +2,8 @@ module Utils
 
 using PromptingTools
 using RAGTools
+using ..HuggingFaceLLM: HuggingFaceManagedSchema
+using ..LocalLLM: LocalManagedSchema
 
 function build_index_rag(cfg, files; embedder_kwargs=())
     return RAGTools.build_index(cfg, files; embedder_kwargs=embedder_kwargs)
@@ -9,8 +11,9 @@ end
 
 """
 Return a PromptingTools schema instance inferred from `schema_name` or `model`.
-Tries to construct `<Name>Schema()` from PromptingTools when available, falls
-back to `PromptingTools.OllamaSchema()`.
+Tries to construct `<Name>Schema()` from PromptingTools when available.
+For `hf:`-prefixed models returns `HuggingFaceManagedSchema` (native HuggingFace Inference API).
+Falls back to `PromptingTools.OllamaSchema()`.
 """
 function get_schema(schema_name::Union{Nothing,String}=nothing, model::Union{Nothing,String}=nothing)
     # Prefer an explicit schema name when provided
@@ -21,17 +24,13 @@ function get_schema(schema_name::Union{Nothing,String}=nothing, model::Union{Not
         end
     end
 
-    # Heuristic: if the model string looks like a huggingface model, try HuggingFaceSchema
+    # Heuristic: if the model string looks like a huggingface model, use HuggingFaceManagedSchema
     if model !== nothing
         low = lowercase(model)
-        if startswith(low, "hf:") || occursin("huggingface", low) || occursin("hf/", low) || occursin("hf-", low)
-            # Prefer an existing HuggingFaceSchema from PromptingTools
-            if isdefined(PromptingTools, :HuggingFaceSchema)
-                return PromptingTools.HuggingFaceSchema()
-            end
-
-            # If PromptingTools doesn't provide a HuggingFaceSchema, fall back to OllamaSchema
-            return PromptingTools.OllamaSchema()
+        if startswith(low, "local:")
+            return LocalManagedSchema()
+        elseif startswith(low, "hf:") || occursin("huggingface", low) || occursin("hf/", low) || occursin("hf-", low)
+            return HuggingFaceManagedSchema()
         end
     end
 

@@ -1,9 +1,6 @@
 module Database
 using LibPQ
-
-function _vector_to_pgarray(v::AbstractVector{T}) where T<:Real
-    string("[", join(v, ","), "]")
-end
+using ..Pgvector: _vector_to_pgarray
 
 function store_embeddings_pgvector(conn::LibPQ.Connection, embeddings::AbstractMatrix, chunks::AbstractVector, embedding_dimension::Int)
     LibPQ.execute(conn, """
