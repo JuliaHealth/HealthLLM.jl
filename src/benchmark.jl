@@ -10,6 +10,7 @@ using PromptingTools
 using ..Query
 using ..Grounding
 using ..Ingestion
+using ..Utils
 
 function load_jsonl(path::String)
     objs = Vector{Any}()

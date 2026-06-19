@@ -12,8 +12,8 @@ function setup_grounding_index(;
                                embedder_model::Union{String,Nothing}=nothing,
                                verbose::Bool=true)
     index = Ingestion.build_grounding_index(; grounding_dir=grounding_dir, embedder_model=embedder_model, verbose=verbose)
-    if verbose && RAGTools.get_chunks(index) !== nothing
-        n = length(RAGTools.get_chunks(index))
+    if verbose && RAGTools.chunks(index) !== nothing
+        n = length(RAGTools.chunks(index))
         @info "Grounding index built with $n chunks"
     end
     index

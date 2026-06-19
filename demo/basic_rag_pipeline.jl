@@ -31,7 +31,7 @@ PromptingTools.MODEL_EMBEDDING = model_embedding
 
 println("\n[2/4] Building grounding index from curated docs...")
 index = HealthLLM.build_grounding_index(; embedder_model=model_embedding, verbose=true)
-n_chunks = length(RAGTools.get_chunks(index))
+n_chunks = length(RAGTools.chunks(index))
 println("  $n_chunks chunks indexed from grounding corpus.")
 
 println("\n[3/4] Registering FunSQL prompt template...")

@@ -2,6 +2,7 @@
 using DrWatson
 @quickactivate "HealthLLM"
 using HealthLLM
+using PromptingTools
 using JSON3
 using Dates
 

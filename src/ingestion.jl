@@ -32,13 +32,17 @@ function build_corpus_index(docs::Vector{Pair{String,String}};
     sources = first.(docs)
     texts = last.(docs)
     cfg = RAGTools.RAGConfig()
-    result = RAGTools.build_index(cfg.indexer, texts;
+    kwargs = (
         chunker=chunker,
         chunker_kwargs=(sources=sources,),
         embedder=embedder,
         embedder_kwargs=embedder_kwargs,
-        index_id=index_id,
-        verbose=verbose)
+        verbose=verbose,
+    )
+    if index_id !== nothing
+        kwargs = merge(kwargs, (index_id=index_id,))
+    end
+    result = RAGTools.build_index(cfg.indexer, texts; kwargs...)
     return result
 end
 
