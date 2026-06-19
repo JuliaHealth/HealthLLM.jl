@@ -1,7 +1,4 @@
 using Test
-using DrWatson
-@quickactivate "HealthLLM"
-
 using HealthLLM
 
 @testset "HuggingFace load helper" begin

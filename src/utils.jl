@@ -3,14 +3,53 @@ module Utils
 using PromptingTools
 using RAGTools
 
+"""
+    build_index_rag(cfg, files; embedder_kwargs=())
+
+Build a RAG index from source files using RAGTools.
+
+# Arguments
+- `cfg`: A RAGTools indexer configuration (e.g. `RAGTools.SimpleIndexer()`).
+- `files`: Vector of file paths or text sources to index.
+
+# Keywords
+- `embedder_kwargs=()`: Additional keyword arguments passed to the embedder (e.g.
+  `(model="nomic-embed-text",)`).
+
+# Returns
+A RAG index object suitable for querying with `generate_funsql_query`.
+
+# Example
+
+```julia
+index = build_index_rag(RAGTools.SimpleIndexer(), ["doc1.md", "doc2.md"])
+```
+"""
 function build_index_rag(cfg, files; embedder_kwargs=())
     return RAGTools.build_index(cfg, files; embedder_kwargs=embedder_kwargs)
 end
 
 """
+    get_schema(schema_name=nothing, model=nothing)
+
 Return a PromptingTools schema instance inferred from `schema_name` or `model`.
+
 Tries to construct `<Name>Schema()` from PromptingTools when available, falls
 back to `PromptingTools.OllamaSchema()`.
+
+# Arguments
+- `schema_name::Union{Nothing,String}`: Explicit schema name (e.g. `"Ollama"`, `"HuggingFace"`).
+- `model::Union{Nothing,String}`: Model name used for heuristic detection (e.g. `"hf:..."` triggers HuggingFaceSchema).
+
+# Returns
+A PromptingTools schema instance.
+
+# Example
+
+```julia
+get_schema("Ollama")                    # -> OllamaSchema()
+get_schema(nothing, "hf:facebook/opt-350m")  # -> HuggingFaceSchema()
+```
 """
 function get_schema(schema_name::Union{Nothing,String}=nothing, model::Union{Nothing,String}=nothing)
     if schema_name !== nothing
@@ -34,12 +73,45 @@ function get_schema(schema_name::Union{Nothing,String}=nothing, model::Union{Not
     return PromptingTools.OllamaSchema()
 end
 
+"""
+    HuggingFaceLoadResult
+
+Result of a HuggingFace model load operation.
+
+# Fields
+- `path::Union{String,Nothing}`: Local path to the downloaded model snapshot, or `nothing` if not downloaded.
+- `info::Any`: Additional metadata from HuggingFaceHub (e.g. model info), or `nothing`.
+- `downloaded::Bool`: Whether the model was successfully downloaded.
+"""
 struct HuggingFaceLoadResult
     path::Union{String,Nothing}
     info::Any
     downloaded::Bool
 end
 
+"""
+    load_huggingface_model(model; token=nothing)
+
+Download and load a HuggingFace model by name using HuggingFaceHub.jl.
+
+# Arguments
+- `model::String`: HuggingFace model identifier (e.g. `"gpt2"`, `"facebook/opt-350m"`).
+
+# Keywords
+- `token::Union{Nothing,String}`: HuggingFace API token for private/gated models.
+
+# Returns
+- `HuggingFaceLoadResult`: Contains `path`, `info`, and `downloaded` fields.
+
+# Example
+
+```julia
+res = load_huggingface_model("gpt2")
+if res.downloaded
+    println("Model downloaded to \$(res.path)")
+end
+```
+"""
 function load_huggingface_model(model::String; token::Union{Nothing,String}=nothing)
     if isdefined(Main, :HuggingFaceHub)
         try
@@ -157,6 +229,29 @@ function write_combined_file(
     return output_file
 end
 
+"""
+    register_models(model_name, model_embedding; schema_name=nothing)
+
+Register chat and embedding models in PromptingTools and set them as active defaults.
+
+# Arguments
+- `model_name::String`: Name of the chat/generation model (e.g. `"llama3.2"`, `"hf:facebook/opt-350m"`).
+- `model_embedding::String`: Name of the embedding model (e.g. `"nomic-embed-text"`, `"hf:all-MiniLM-L6-v2"`).
+
+# Keywords
+- `schema_name::Union{Nothing,String}`: Optional explicit schema name (e.g. `"Ollama"`, `"HuggingFace"`).
+  If `nothing`, the schema is inferred from model names.
+
+# Returns
+`nothing`.
+
+# Example
+
+```julia
+register_models("llama3.2", "nomic-embed-text")
+register_models("hf:facebook/opt-350m", "hf:all-MiniLM-L6-v2"; schema_name="HuggingFace")
+```
+"""
 function register_models(model_name::String, model_embedding::String; schema_name::Union{Nothing,String}=nothing)
     schema_for_generator = get_schema(schema_name, model_name)
     schema_for_embedder = get_schema(schema_name, model_embedding)

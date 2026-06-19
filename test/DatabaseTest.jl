@@ -1,5 +1,13 @@
+using HealthLLM
+using HealthLLM.Database: validate_embeddings_inputs
+
 @testset "Database" begin
-    using HealthLLM.Database
+    @testset "_vector_to_pgarray" begin
+        @test HealthLLM.Database._vector_to_pgarray([1.0, 2.0, 3.0]) == "[1.0,2.0,3.0]"
+        @test HealthLLM.Database._vector_to_pgarray([1, 2, 3]) == "[1,2,3]"
+        @test HealthLLM.Database._vector_to_pgarray(Float64[]) == "[]"
+        @test HealthLLM.Database._vector_to_pgarray(Float32[0.1, 0.2]) == "[0.1,0.2]"
+    end
 
     @testset "validate_embeddings_inputs" begin
         embeddings = rand(384, 10)

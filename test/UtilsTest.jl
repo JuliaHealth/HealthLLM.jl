@@ -1,18 +1,21 @@
-@testset "Utils" begin
-    using HealthLLM.Utils
+using HealthLLM
+using HealthLLM.Utils: collect_files_with_extensions, write_combined_file
+using RAGTools
+using PromptingTools
 
+@testset "Utils" begin
     @testset "collect_files_with_extensions" begin
         mktempdir() do dir
             mkdir(joinpath(dir, "subdir"))
-            touch(joinpath(dir, "file.jl"))
-            touch(joinpath(dir, "file.JL"))
+            touch(joinpath(dir, "alpha.jl"))
+            touch(joinpath(dir, "beta.JL"))
             touch(joinpath(dir, "subdir", "nested.jl"))
             touch(joinpath(dir, "readme.md"))
             touch(joinpath(dir, "subdir", "data.csv"))
 
             result = collect_files_with_extensions(dir, [".jl"])
             @test length(result) == 3
-            @test all(endswith(lowercase.(result), ".jl"))
+            @test all(endswith.(lowercase.(result), ".jl"))
         end
 
         mktempdir() do dir
@@ -40,10 +43,31 @@
         end
     end
 
-    @testset "to_pgvector_literal" begin
-        using HealthLLM.Pgvector
-        @test to_pgvector_literal([1.0, 2.0, 3.0]) == "[1.0,2.0,3.0]"
-        @test to_pgvector_literal([0, 1, 2]) == "[0,1,2]"
-        @test to_pgvector_literal(Float32[0.1, 0.2]) == "[0.1,0.2]"
+    @testset "build_index_rag dispatches correctly" begin
+        @test_throws Exception HealthLLM.build_index_rag(
+            RAGTools.SimpleIndexer(), ["Hello world"]; embedder_kwargs=(;)
+        )
+    end
+
+    @testset "get_schema inference" begin
+        s1 = HealthLLM.Utils.get_schema("Ollama")
+        @test typeof(s1) == typeof(PromptingTools.OllamaSchema())
+
+        if isdefined(PromptingTools, :HuggingFaceSchema)
+            s2 = HealthLLM.Utils.get_schema(nothing, "hf:facebook/opt-350m")
+            @test typeof(s2) == typeof(PromptingTools.HuggingFaceSchema())
+        end
+    end
+
+    @testset "register_models sets globals" begin
+        HealthLLM.register_models("test-chat-model", "test-emb-model")
+        @test PromptingTools.MODEL_CHAT == "test-chat-model"
+        @test PromptingTools.MODEL_EMBEDDING == "test-emb-model"
+    end
+
+    @testset "load_huggingface_model without HF" begin
+        res = HealthLLM.load_huggingface_model("some/fake-model")
+        @test res isa HealthLLM.HuggingFaceLoadResult
+        @test res.downloaded == false
     end
 end

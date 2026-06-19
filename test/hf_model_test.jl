@@ -1,11 +1,6 @@
-
 using Test
-using DrWatson
-@quickactivate "HealthLLM"
-
 using HealthLLM
 using PromptingTools
-using RAGTools
 
 @testset "HuggingFace model support" begin
     # Schema detection should return a HuggingFaceSchema for HF-like model strings

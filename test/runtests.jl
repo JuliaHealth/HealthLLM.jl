@@ -1,14 +1,16 @@
 using Test
-using Pkg: Pkg
 
 println("Starting tests")
 ti = time()
 
 @testset "HealthLLM tests" begin
-    include("FunSQLTest.jl")
+    include("UtilsTest.jl")
+    include("DatabaseTest.jl")
+    include("QueryTest.jl")
+    include("utils_tests.jl")
     include("hf_model_test.jl")
     include("hf_load_tests.jl")
-    include("utils_tests.jl")
+    include("FunSQLTest.jl")
 end
 
 include("aqua.jl")
