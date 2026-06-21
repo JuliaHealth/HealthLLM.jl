@@ -4,7 +4,7 @@ using PromptingTools
 using RAGTools
 
 """
-    build_index_rag(cfg, files; embedder_kwargs=())
+    build_index_rag(cfg, files; embedder_kwargs=NamedTuple())
 
 Build a RAG index from source files using RAGTools.
 
@@ -13,7 +13,7 @@ Build a RAG index from source files using RAGTools.
 - `files`: Vector of file paths or text sources to index.
 
 # Keywords
-- `embedder_kwargs=()`: Additional keyword arguments passed to the embedder (e.g.
+- `embedder_kwargs=NamedTuple()`: Additional keyword arguments passed to the embedder (e.g.
   `(model="nomic-embed-text",)`).
 
 # Returns
@@ -25,7 +25,7 @@ A RAG index object suitable for querying with `generate_funsql_query`.
 index = build_index_rag(RAGTools.SimpleIndexer(), ["doc1.md", "doc2.md"])
 ```
 """
-function build_index_rag(cfg, files; embedder_kwargs=())
+function build_index_rag(cfg, files; embedder_kwargs=NamedTuple())
     return RAGTools.build_index(cfg, files; embedder_kwargs=embedder_kwargs)
 end
 
