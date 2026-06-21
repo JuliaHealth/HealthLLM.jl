@@ -2,6 +2,7 @@ module Query
 
 using PromptingTools
 using RAGTools
+using ..Utils
 
 """
     generate_funsql_query(index, model_embedding, model_name, prompt_template, question; schema=PromptingTools.OllamaSchema())
