@@ -1,9 +1,14 @@
 using HealthLLM
 using HealthLLM.Utils: collect_files_with_extensions, write_combined_file
-using RAGTools
-using PromptingTools
 
 @testset "Utils" begin
+    @testset "re-exported modules are available" begin
+        @test isdefined(Main, :RAGTools)
+        @test isdefined(Main, :PromptingTools)
+        @test RAGTools === HealthLLM.RAGTools
+        @test PromptingTools === HealthLLM.PromptingTools
+    end
+
     @testset "collect_files_with_extensions" begin
         mktempdir() do dir
             mkdir(joinpath(dir, "subdir"))

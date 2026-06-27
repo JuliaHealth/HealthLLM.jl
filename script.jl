@@ -1,6 +1,4 @@
 using HealthLLM
-using RAGTools
-using PromptingTools
 
 mktempdir() do dir
     write(joinpath(dir, "doc1.md"), "# Hypertension\nTreatment includes lifestyle changes and medication.")
