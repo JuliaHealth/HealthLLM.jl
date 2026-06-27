@@ -22,9 +22,9 @@ https://paramthakkar123.github.io/HealthLLM.jl/dev/
 
 - `src/`: package source code.
 - `docs/`: Documenter site and docs-specific environment.
+- `examples/`: runnable examples, including the end-to-end RAG pipeline example.
 - `test/`: test suite and test-specific environment.
 - `FunSQLQueries/`: query-related assets used by the project.
-- `script.jl`: local example script for exercising the package surface.
 - `.env.example`: example environment variable template.
 - `CITATION.bib`: citation metadata.
 
@@ -32,6 +32,7 @@ https://paramthakkar123.github.io/HealthLLM.jl/dev/
 
 - API and usage guide: `docs/`
 - Hosted docs: https://paramthakkar123.github.io/HealthLLM.jl/dev/
+- Runnable examples: `examples/`
 
 ## Citation
 

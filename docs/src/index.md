@@ -27,7 +27,7 @@ files = collect_files_with_extensions("data", [".md", ".jl"])
 index = build_index_rag(RAGTools.SimpleIndexer(), files)
 ```
 
-For installation steps, testing commands, and the end-to-end walkthrough, see [Getting Started](getting-started.md).
+Users who want a runnable walkthrough can start with `examples/rag_pipeline.jl`. More detailed setup, testing commands, and the end-to-end walkthrough are in [Getting Started](getting-started.md).
 
 ```@autodocs
 Modules = [HealthLLM, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Query]

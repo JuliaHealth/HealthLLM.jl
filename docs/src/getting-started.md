@@ -7,6 +7,20 @@ using Pkg
 Pkg.add(url="https://github.com/ParamThakkar123/HealthLLM.jl")
 ```
 
+## Examples
+
+The `examples/` directory contains runnable scripts for trying the package surface directly.
+
+- `examples/rag_pipeline.jl`: end-to-end example covering file collection, model registration, index construction, embedding validation, and query generation.
+
+You can run the pipeline example from the repository root with:
+
+```bash
+julia --project=. examples/rag_pipeline.jl
+```
+
+Users can also treat the example as a starting point for trying individual features of the pipeline, such as corpus preparation, retrieval index construction, or query generation in isolation.
+
 ## Quick start
 
 ```julia
