@@ -37,7 +37,7 @@ answer = generate_funsql_query(
     "nomic-embed-text",
     "llama3.2",
     "Context: {input_query}. Answer concisely.",
-    "What is the recommended treatment for hypertension?"
+    "What is the FunSQL query to query for patients with Hypertension?"
 )
 ```
 
@@ -98,23 +98,6 @@ answer = generate_funsql_query(
     "Context: {input_query}. Answer concisely.",
     "What is the recommended treatment for hypertension?"
 )
-```
-
-### 7. Use the response in a query workflow
-
-```julia
-using FunSQL
-using DuckDB
-using DataFrames
-
-if occursin("hypertension", answer)
-    query = FunSQL.From(:patients) |>
-            FunSQL.Where(FunSQL.Is(FunSQL.Ref(:diagnosis), "hypertension")) |>
-            FunSQL.Select(FunSQL.Ref(:patient_id), FunSQL.Ref(:treatment))
-end
-
-conn = DuckDB.DB("health.duckdb")
-result = DuckDB.execute(conn, FunSQL.render(query, dialect=FunSQL.SQLDialect(:duckdb))) |> DataFrame
 ```
 
 ## Testing
