@@ -110,3 +110,4 @@ function store_embeddings_pgvector(
 end
 
 end
+
