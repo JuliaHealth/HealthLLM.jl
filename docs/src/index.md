@@ -8,9 +8,10 @@ HealthLLM provides a compact Julia interface for retrieval-augmented workflows o
 
 ## Package scope
 
-The package centers on four areas:
+The package centers on five areas:
 
 - collecting source files and writing combined corpora
+- ingesting curated docs and web-search results into an index (see [Document Ingestion](ingestion.md))
 - building retrieval indexes through `RAGTools`
 - generating retrieval-backed answers for query construction
 - storing embeddings in PostgreSQL with `pgvector`
@@ -30,5 +31,5 @@ index = build_index_rag(RAGTools.SimpleIndexer(), files)
 More detailed setup, testing commands, and the end-to-end walkthrough are in [Getting Started](getting-started.md).
 
 ```@autodocs
-Modules = [HealthLLM, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Query]
+Modules = [HealthLLM, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Query, HealthLLM.Ingestion]
 ```
