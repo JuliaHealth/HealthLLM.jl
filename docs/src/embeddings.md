@@ -224,6 +224,27 @@ As with the local store, vectors are normalised for the inner-product/cosine
 metrics; use `metric = :l2` for a raw L2 index (scores are then negated distances
 so that larger is always more similar).
 
+## Retrieving by text
+
+[`search`](@ref) takes a query *vector*, so at query time you would normally embed
+the question yourself and pass the result in. [`retrieve`](@ref) folds those two
+steps into one per-query call: give it the store and a **string**, and it embeds
+the query and returns the nearest chunks. It works with any store backend and
+returns exactly what that backend's [`search`](@ref) yields.
+
+```julia
+store = LocalVectorStore(embedding_dimension())
+add!(store, embed(chunks), chunks)
+
+hits = retrieve(store, "How do I count patients in OMOP?", 5)
+hits[1].chunk        # most relevant chunk text
+```
+
+`model`, `provider`, and any extra keyword arguments are forwarded to the embedder,
+so you can retrieve with the same model you indexed with. The embedder itself is
+injectable via the `embedder` keyword — handy for tests or a cached embedding
+function — and is called as `embedder(query, model; provider, kwargs...)`.
+
 ## Putting it together
 
 ```julia
