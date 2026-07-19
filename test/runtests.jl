@@ -15,6 +15,7 @@ ti = time()
     include("EmbeddingsTest.jl")
     include("StorageTest.jl")
     include("PromptTest.jl")
+    include("ExecutionTest.jl")
 end
 
 ti = time() - ti

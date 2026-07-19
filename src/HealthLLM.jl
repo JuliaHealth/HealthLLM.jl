@@ -12,6 +12,7 @@ include("database.jl")
 include("embeddings.jl")
 include("storage.jl")
 include("prompt.jl")
+include("execution.jl")
 include("query.jl")
 include("ingestion.jl")
 
@@ -25,6 +26,8 @@ import .Storage: AbstractVectorStore, LocalVectorStore, PgVectorStore, FaissVect
     add!, search, retrieve, save, load
 import .Prompt: FUNSQL_SYSTEM_PROMPT, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE,
     format_context, build_prompt
+import .Execution: extract_funsql, generate_funsql, FunSQLGeneration,
+    sanity_check_funsql, FunSQLCheck
 import .Query: generate_funsql_query
 import .Ingestion: SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
@@ -35,6 +38,8 @@ import .Ingestion: SourceDocument, SearchResult,
 export PromptingTools, RAGTools
 export FUNSQL_SYSTEM_PROMPT, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE,
     format_context, build_prompt
+export extract_funsql, generate_funsql, FunSQLGeneration,
+    sanity_check_funsql, FunSQLCheck
 export collect_files_with_extensions, write_combined_file, generate_funsql_query,
     build_index_rag, store_embeddings_pgvector, search_embeddings_pgvector,
     validate_embeddings_inputs,
