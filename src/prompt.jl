@@ -9,8 +9,8 @@ prompt asking the model to translate the question into a FunSQL query.
 
 The two moving parts injected into every prompt are:
 
-1. **Retrieved context** — the ranked chunks from [`retrieve`](@ref)/[`search`](@ref)
-   (or raw strings / [`Chunk`](@ref)s), formatted as numbered, optionally
+1. **Retrieved context** — the ranked chunks from `retrieve`/`search`
+   (or raw strings / `Chunk`s), formatted as numbered, optionally
    provenance-tagged blocks so the model can ground its answer and cite sources.
 2. **The analytical question** — the user's natural-language request, verbatim.
 
@@ -39,6 +39,8 @@ p.prompt
 ```
 """
 module Prompt
+
+using ..Utils: render_provenance
 
 export FUNSQL_SYSTEM_PROMPT, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE,
     format_context, build_prompt
@@ -149,7 +151,7 @@ const DEFAULT_FUNSQL_TEMPLATE = PromptTemplate()
 
 # Duck-typed so `Prompt` need not depend on `Storage` or `Ingestion`. Accepts:
 #   * a plain `String`                      -> text only
-#   * a search/retrieve hit NamedTuple      -> `.chunk` text, `.score`/`.distance`
+#   * a `Hit` or search-hit NamedTuple      -> `.chunk` text, `.score`/`.distance`
 #   * a `Chunk` (from Ingestion)            -> `.text`, `.metadata` provenance
 # Returns `(; text, provenance, score)` with empty/nothing where unavailable.
 function _as_context_item(x)
@@ -165,23 +167,12 @@ function _as_context_item(x)
 
     provenance = ""
     if hasproperty(x, :metadata) && getproperty(x, :metadata) isa AbstractDict
-        provenance = _provenance_from_metadata(getproperty(x, :metadata))
+        # Same renderer the ingestion index uses, so a chunk's provenance reads
+        # identically in the prompt and in the store.
+        provenance = render_provenance(getproperty(x, :metadata))
     end
 
     return (; text=String(text), provenance=provenance, score=score)
-end
-
-# Mirror of Ingestion.chunk_provenance, kept local so Prompt stays decoupled:
-# "<url-or-source> › <heading-or-group>".
-function _provenance_from_metadata(md::AbstractDict)
-    base = get(md, :url, "")
-    isempty(base) && (base = get(md, :source, ""))
-    parent = get(md, :heading, get(md, :group, ""))
-    base = string(base)
-    parent = string(parent)
-    isempty(parent) && return base
-    isempty(base) && return parent
-    return string(base, " › ", parent)
 end
 
 _score_str(::Nothing) = ""
@@ -197,7 +188,7 @@ _score_str(s) = ""
 
 Render the retrieved `hits` into a numbered context block per `template`. `hits`
 is any iterable of retrieval results — plain strings, `search`/`retrieve` hit
-NamedTuples, or [`Chunk`](@ref)s. Blank chunks are dropped; the first
+NamedTuples, or `Chunk`s. Blank chunks are dropped; the first
 `template.max_chunks` are kept, and chunks are admitted only while the running
 size stays within `template.max_context_chars` (a single over-budget chunk is
 truncated). Returns `template.empty_context_note` when nothing survives.
@@ -253,7 +244,7 @@ Returns a NamedTuple with three fields, so both prompting styles are covered:
 - `prompt::String` — `system` and `user` joined, for single-string callers.
 
 `hits` accepts plain strings, `search`/`retrieve` hit NamedTuples, or
-[`Chunk`](@ref)s (see [`format_context`](@ref)). Throws `ArgumentError` on an
+`Chunk`s (see [`format_context`](@ref)). Throws `ArgumentError` on an
 empty `question`.
 
 # Example

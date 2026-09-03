@@ -58,9 +58,73 @@ embedding_ref("all-minilm";       provider=:huggingface)   # "hf:sentence-transf
 
 !!! note "Backend setup"
     For Ollama, pull the tag once with `ollama pull nomic-embed-text` and make
-    sure the server is running. For HuggingFace, ensure the corresponding schema
-    is configured in `PromptingTools`. Either way, register the model in the RAG
-    pipeline with `register_models(...)` as shown in [Getting Started](getting-started.md).
+    sure the server is running. For HuggingFace, set a token (see below). Either
+    way, register the model in the RAG pipeline with `register_models(...)` as
+    shown in [Getting Started](getting-started.md).
+
+### The HuggingFace backend
+
+PromptingTools ships schemas for a long list of OpenAI-compatible providers but
+none for HuggingFace, so this package supplies one:
+[`HuggingFaceOpenAISchema`](@ref). It is an `AbstractOpenAISchema`, so
+`aigenerate`, `aiembed`, message rendering and retries all work unchanged —
+`provider = :huggingface` and `hf:`-prefixed model names route through it
+automatically.
+
+Set a token once per session, or let it come from the environment
+(`HF_API_TOKEN`, `HF_TOKEN`, `HUGGINGFACE_API_KEY`, `HUGGING_FACE_HUB_TOKEN`,
+checked in that order):
+
+```julia
+set_huggingface_api_key!(ENV["HF_TOKEN"])
+huggingface_api_key()          # what will actually be sent
+```
+
+!!! note "Pinning an inference provider"
+    The router auto-routes only to providers **enabled on your account**, so a
+    model can be live on HuggingFace and still be refused with
+    `model_not_supported`. Append the provider to pin it:
+
+    ```julia
+    huggingface_providers("Qwen/Qwen2.5-7B-Instruct")   # ["featherless-ai"]
+
+    register_models("hf:Qwen/Qwen2.5-7B-Instruct:featherless-ai", "hf:BAAI/bge-m3")
+    ```
+
+    When routing is refused, the error raised here already names the live
+    providers and the exact model string to use, so you rarely need to look this
+    up yourself. Alternatively enable the provider at
+    [huggingface.co/settings/inference-providers](https://huggingface.co/settings/inference-providers).
+
+Chat and embeddings use different HuggingFace surfaces, because the router's
+OpenAI-compatible API covers chat completions only — `/v1/embeddings` answers
+404 there:
+
+| Call         | Endpoint                                                                  |
+|--------------|---------------------------------------------------------------------------|
+| `aigenerate` | [`HUGGINGFACE_ROUTER_URL`](@ref) + `/chat/completions`                     |
+| `aiembed`    | [`HUGGINGFACE_INFERENCE_URL`](@ref) + `/<model>/pipeline/feature-extraction` |
+
+The feature-extraction reply is reshaped into the OpenAI embeddings response
+`aiembed` expects, and token-level output (from models that do not pool
+internally) is mean-pooled to one vector per input — so a HuggingFace embedding
+matrix is the same `dim × n` shape as an Ollama one.
+
+!!! note "Cold models"
+    A HuggingFace model that is not already warm loads while holding the
+    connection open — around 40–55s for `bge-m3` in practice. That exceeds
+    PromptingTools' 120s `aiembed` default under load, so this package raises the
+    read timeout to [`HUGGINGFACE_EMBED_TIMEOUT`](@ref) (300s) when you have not
+    chosen one yourself. Any `http_kwargs` you pass is left exactly as given.
+
+To use a deployment that *does* speak OpenAI embeddings — a Text Embeddings
+Inference container or a dedicated Inference Endpoint — pass its URL and the
+request is forwarded there instead:
+
+```julia
+E = embed(chunks, "bge-m3"; provider = :huggingface,
+          api_kwargs = (; url = "https://my-endpoint.hf.space/v1"))
+```
 
 ## Generating embeddings
 
@@ -186,7 +250,7 @@ conn  = LibPQ.Connection("postgresql://user:pass@localhost/health")
 store = PgVectorStore(conn, embedding_dimension(); table = "omop_embeddings", metric = :cosine)
 
 add!(store, E, chunks)                               # creates the table + inserts in one transaction
-hits = search(store, embed("count patients"), 5)     # (; id, chunk, distance)
+hits = search(store, embed("count patients"), 5)     # Vector{Hit}: row id in `index`, raw `distance` kept
 ```
 
 `metric` chooses the distance operator: `:cosine` (`<=>`), `:dot` (`<#>`), or
@@ -196,7 +260,7 @@ wrapper:
 
 ```julia
 store_embeddings_pgvector(conn, E, chunks, embedding_dimension(); table = "omop_embeddings")
-hits = search_embeddings_pgvector(conn, embed("count patients"), 5; table = "omop_embeddings")
+hits = search_embeddings_pgvector(conn, embed("count patients"), 5; table = "omop_embeddings")  # raw (; id, chunk, distance)
 ```
 
 !!! note "pgvector prerequisites"
@@ -217,7 +281,7 @@ using Faiss                                          # optional; load before con
 
 store = FaissVectorStore(embedding_dimension())      # inner-product index (cosine after normalisation)
 add!(store, E, chunks)
-hits = search(store, embed("count patients"), 5)     # (; index, chunk, score)
+hits = search(store, embed("count patients"), 5)     # Vector{Hit}, as with every backend
 ```
 
 As with the local store, vectors are normalised for the inner-product/cosine

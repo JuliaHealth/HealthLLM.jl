@@ -2,7 +2,7 @@
     Execution
 
 Turn a grounded prompt into a FunSQL query and check that the query the model
-produced is actually usable. This closes the loop opened by [`Prompt`](@ref):
+produced is actually usable. This closes the loop opened by the `Prompt` module:
 
 ```
 build_prompt ─▶ generate_funsql ─▶ FunSQLGeneration ─▶ sanity_check_funsql ─▶ FunSQLCheck
@@ -24,7 +24,7 @@ Two responsibilities:
 
 Building and rendering FunSQL needs the `FunSQL` package loaded in `Main` (it is a
 test/driver-side dependency, not a hard dependency of HealthLLM, mirroring how
-[`FaissVectorStore`](@ref) treats `Faiss`). The parse stage works without it; the
+`FaissVectorStore` treats `Faiss`). The parse stage works without it; the
 later stages raise a clear error until `using FunSQL` has run.
 
 !!! warning "Evaluating model output"
@@ -37,6 +37,7 @@ module Execution
 
 import PromptingTools
 using ..Prompt: build_prompt, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE
+using ..Utils: require_main_module
 
 export extract_funsql, generate_funsql, FunSQLGeneration,
     sanity_check_funsql, FunSQLCheck
@@ -174,10 +175,9 @@ function Base.show(io::IO, c::FunSQLCheck)
     print(io, ")")
 end
 
-_funsql_module() = isdefined(Main, :FunSQL) ? Main.FunSQL :
-    throw(ArgumentError(
-        "FunSQL is required to build/render a query. Install FunSQL.jl and run " *
-        "`using FunSQL` before calling sanity_check_funsql with build/render stages."))
+_funsql_module() = require_main_module(:FunSQL,
+    "Building or rendering a query needs FunSQL.jl: install it and run " *
+    "`using FunSQL` before calling sanity_check_funsql with build/render stages.")
 
 # FunSQL does not export its node constructors (`From`, `Get`, `Agg`, ...), so
 # generated code that uses the bare names does not resolve under a plain
