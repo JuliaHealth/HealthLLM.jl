@@ -1,0 +1,11 @@
+[deps]
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+DuckDB = "d2f5444f-75bc-4fdf-ac35-56f514c445e1"
+FunSQL = "cf6cc811-59f4-4a10-b258-a8547a8f6407"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+HealthLLM = "1de6b779-c1fb-4125-b891-fad447459241"
+HuggingFaceHub = "d0076355-e2c0-48e6-a044-05906e51b7fc"
+JSON3 = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
+PromptingTools = "670122d1-24a8-4d70-bfce-740807c42192"
+RAGTools = "16ddad29-bbe8-45a7-857d-3d9514eb0023"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

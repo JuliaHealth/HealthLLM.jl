@@ -1,21 +1,17 @@
-using DrWatson, Test
-@quickactivate "HealthLLM"
+using Test
 
-# Here you include files using `srcdir`
-# include(srcdir("file.jl"))
-
-# Run test suite
 println("Starting tests")
 ti = time()
 
 @testset "HealthLLM tests" begin
-    include("FunSQLTest.jl")
+    include("UtilsTest.jl")
+    include("DatabaseTest.jl")
+    include("QueryTest.jl")
+    include("utils_tests.jl")
     include("hf_model_test.jl")
     include("hf_load_tests.jl")
-    include("utils_tests.jl")
+    include("FunSQLTest.jl")
 end
-
-include("aqua.jl")
 
 ti = time() - ti
 println("\nTest took total time of:")
