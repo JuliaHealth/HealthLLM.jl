@@ -25,10 +25,10 @@ module Storage
 using LinearAlgebra
 using Serialization
 import ..Database: store_embeddings_pgvector, search_embeddings_pgvector
-using ..Embeddings: cosine_similarity, embed
+using ..Embeddings: cosine_similarity, embed, DEFAULT_EMBEDDING_MODEL
 
 export AbstractVectorStore, LocalVectorStore, PgVectorStore, FaissVectorStore,
-    add!, search, save, load
+    add!, search, retrieve, save, load
 
 """
     AbstractVectorStore
@@ -37,6 +37,43 @@ Supertype for all vector-store backends. Concrete stores implement [`add!`](@ref
 [`search`](@ref), and `Base.length`.
 """
 abstract type AbstractVectorStore end
+
+"""
+    retrieve(store, query::AbstractString, k=5;
+             model=DEFAULT_EMBEDDING_MODEL, provider=:ollama, embedder=embed, kwargs...)
+
+Per-query retrieval: embed a natural-language `query` with `model` and return the
+`k` nearest stored chunks from `store`. This is the text-in entry point that pairs
+[`embed`](@ref) with a store's [`search`](@ref) — whereas [`search`](@ref) takes a
+pre-computed query *vector*, `retrieve` takes the *string* and handles embedding.
+
+Works with any [`AbstractVectorStore`](@ref); the returned hits are exactly what the
+backend's [`search`](@ref) yields (`(; index, chunk, score)` for local/FAISS stores,
+`(; id, chunk, distance)` for pgvector). `provider` and extra `kwargs` are forwarded
+to the embedder. Pass `embedder` to substitute the embedding function (useful for
+tests or a cached embedder); it is called as `embedder(query, model; provider, kwargs...)`
+and must return the query embedding as a `dim × 1` matrix or a length-`dim` vector.
+
+# Example
+
+```julia
+store = LocalVectorStore(embedding_dimension())
+add!(store, embed(chunks), chunks)
+
+hits = retrieve(store, "How do I count patients in OMOP?", 5)
+for h in hits
+    println(round(h.score, digits=3), "  ", first(h.chunk, 80))
+end
+```
+"""
+function retrieve(store::AbstractVectorStore, query::AbstractString, k::Integer=5;
+    model::AbstractString=DEFAULT_EMBEDDING_MODEL, provider::Symbol=:ollama,
+    embedder=embed, kwargs...)
+    isempty(query) && throw(ArgumentError("`query` is empty; nothing to retrieve."))
+    E = embedder(query, model; provider=provider, kwargs...)
+    qvec = E isa AbstractMatrix ? vec(view(E, :, 1)) : vec(collect(E))
+    return search(store, qvec, k)
+end
 
 # ---------------------------------------------------------------------------
 # LocalVectorStore

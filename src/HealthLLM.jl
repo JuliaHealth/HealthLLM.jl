@@ -21,7 +21,7 @@ import .Embeddings: EmbeddingModel, EMBEDDING_MODELS, DEFAULT_EMBEDDING_MODEL,
     embed, cosine_similarity, similarity_matrix,
     validate_embeddings, embedding_sanity_check
 import .Storage: AbstractVectorStore, LocalVectorStore, PgVectorStore, FaissVectorStore,
-    add!, search, save, load
+    add!, search, retrieve, save, load
 import .Query: generate_funsql_query
 import .Ingestion: SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
@@ -39,7 +39,7 @@ export EmbeddingModel, EMBEDDING_MODELS, DEFAULT_EMBEDDING_MODEL,
     embed, cosine_similarity, similarity_matrix,
     validate_embeddings, embedding_sanity_check
 export AbstractVectorStore, LocalVectorStore, PgVectorStore, FaissVectorStore,
-    add!, search, save, load
+    add!, search, retrieve, save, load
 export SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
     default_search_provider, web_search,
