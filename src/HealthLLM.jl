@@ -11,6 +11,7 @@ include("utils.jl")
 include("database.jl")
 include("embeddings.jl")
 include("storage.jl")
+include("prompt.jl")
 include("query.jl")
 include("ingestion.jl")
 
@@ -22,14 +23,20 @@ import .Embeddings: EmbeddingModel, EMBEDDING_MODELS, DEFAULT_EMBEDDING_MODEL,
     validate_embeddings, embedding_sanity_check
 import .Storage: AbstractVectorStore, LocalVectorStore, PgVectorStore, FaissVectorStore,
     add!, search, retrieve, save, load
+import .Prompt: FUNSQL_SYSTEM_PROMPT, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE,
+    format_context, build_prompt
 import .Query: generate_funsql_query
 import .Ingestion: SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
     default_search_provider, web_search,
     CURATED_SOURCES, fetch_url, html_to_text, fetch_curated,
+    Chunk, AbstractChunkStrategy, RecursiveChunk, HeaderChunk, RecordChunk, FixedSizeChunk,
+    chunk, chunk_document, chunk_provenance, default_strategy, load_funsql_examples,
     ingest, ingest_to_index
 
 export PromptingTools, RAGTools
+export FUNSQL_SYSTEM_PROMPT, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE,
+    format_context, build_prompt
 export collect_files_with_extensions, write_combined_file, generate_funsql_query,
     build_index_rag, store_embeddings_pgvector, search_embeddings_pgvector,
     validate_embeddings_inputs,
@@ -44,6 +51,8 @@ export SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
     default_search_provider, web_search,
     CURATED_SOURCES, fetch_url, html_to_text, fetch_curated,
+    Chunk, AbstractChunkStrategy, RecursiveChunk, HeaderChunk, RecordChunk, FixedSizeChunk,
+    chunk, chunk_document, chunk_provenance, default_strategy, load_funsql_examples,
     ingest, ingest_to_index
 
 end
