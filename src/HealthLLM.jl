@@ -2,53 +2,41 @@ module HealthLLM
 
 using PromptingTools
 using RAGTools
-using LinearAlgebra
-using SparseArrays
-using JSON3, Serialization
-using Statistics
 
+# Included in dependency order: each module may use the ones above it.
+include("huggingface.jl")
 include("utils.jl")
 include("database.jl")
 include("embeddings.jl")
 include("storage.jl")
 include("prompt.jl")
+include("execution.jl")
 include("query.jl")
 include("ingestion.jl")
 
-import .Utils: collect_files_with_extensions, write_combined_file, register_models, load_huggingface_model, HuggingFaceLoadResult, build_index_rag
-import .Database: store_embeddings_pgvector, search_embeddings_pgvector, validate_embeddings_inputs
-import .Embeddings: EmbeddingModel, EMBEDDING_MODELS, DEFAULT_EMBEDDING_MODEL,
-    embedding_model, embedding_ref, embedding_dimension,
-    embed, cosine_similarity, similarity_matrix,
-    validate_embeddings, embedding_sanity_check
-import .Storage: AbstractVectorStore, LocalVectorStore, PgVectorStore, FaissVectorStore,
-    add!, search, retrieve, save, load
-import .Prompt: FUNSQL_SYSTEM_PROMPT, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE,
-    format_context, build_prompt
-import .Query: generate_funsql_query
-import .Ingestion: SourceDocument, SearchResult,
-    AbstractSearchProvider, DuckDuckGoProvider,
-    default_search_provider, web_search,
-    CURATED_SOURCES, fetch_url, html_to_text, fetch_curated,
-    ingest, ingest_to_index
+"""
+    HealthLLM.PUBLIC_MODULES
 
+The submodules whose exported names make up the public API of `HealthLLM`.
+Everything a submodule exports is re-exported from the package, so each symbol is
+declared in exactly one place — the `export` list of the module that defines it.
+Adding a name to that list is all it takes to publish it; there is no second
+mirrored list here to fall out of sync.
+"""
+const PUBLIC_MODULES = (HuggingFace, Utils, Database, Embeddings, Storage, Prompt,
+    Execution, Query, Ingestion)
+
+# Explicit `import` rather than `using`, because an explicit import takes
+# precedence over names a `using` brings in: `Storage.retrieve` has to win over
+# the `retrieve` that `using RAGTools` above also provides, or the name resolves
+# to neither and disappears from the package's API.
+for m in PUBLIC_MODULES, n in names(m)
+    n === nameof(m) && continue
+    Core.eval(@__MODULE__, Meta.parse("import .$(nameof(m)): $n"))
+    Core.eval(@__MODULE__, Expr(:export, n))
+end
+
+# The two upstream packages callers routinely need alongside HealthLLM.
 export PromptingTools, RAGTools
-export FUNSQL_SYSTEM_PROMPT, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE,
-    format_context, build_prompt
-export collect_files_with_extensions, write_combined_file, generate_funsql_query,
-    build_index_rag, store_embeddings_pgvector, search_embeddings_pgvector,
-    validate_embeddings_inputs,
-    register_models, load_huggingface_model, HuggingFaceLoadResult
-export EmbeddingModel, EMBEDDING_MODELS, DEFAULT_EMBEDDING_MODEL,
-    embedding_model, embedding_ref, embedding_dimension,
-    embed, cosine_similarity, similarity_matrix,
-    validate_embeddings, embedding_sanity_check
-export AbstractVectorStore, LocalVectorStore, PgVectorStore, FaissVectorStore,
-    add!, search, retrieve, save, load
-export SourceDocument, SearchResult,
-    AbstractSearchProvider, DuckDuckGoProvider,
-    default_search_provider, web_search,
-    CURATED_SOURCES, fetch_url, html_to_text, fetch_curated,
-    ingest, ingest_to_index
 
 end

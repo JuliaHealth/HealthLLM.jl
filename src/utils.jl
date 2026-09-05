@@ -1,7 +1,58 @@
+"""
+    Utils
+
+Cross-cutting helpers shared by the rest of HealthLLM: model/schema resolution,
+HuggingFace model loading, provenance rendering, optional-dependency lookup, and
+small file utilities.
+"""
 module Utils
 
 using PromptingTools
 using RAGTools
+import HuggingFaceHub
+using ..HuggingFace: HuggingFaceOpenAISchema
+
+export build_index_rag, get_schema, register_models,
+    HuggingFaceLoadResult, load_huggingface_model,
+    require_main_module, render_provenance, check_dims, check_k,
+    collect_files_with_extensions, write_combined_file
+
+"""
+    check_dims(embeddings, chunks=nothing, expected_dim=nothing) -> (dim, n)
+
+Shape check for a `dim × n` embedding matrix whose columns are chunks — the
+convention used throughout embedding, storage, and database code. Verifies the
+row count against `expected_dim` and the column count against `length(chunks)`
+when either is supplied, then returns `size(embeddings)`.
+
+Throws `DimensionMismatch` on the first mismatch. Every layer that accepts an
+embedding matrix alongside its texts routes its shape check through here, so the
+same misuse reports the same way everywhere.
+"""
+function check_dims(embeddings::AbstractMatrix,
+    chunks::Union{Nothing,AbstractVector}=nothing,
+    expected_dim::Union{Nothing,Integer}=nothing)
+    dim, n = size(embeddings)
+    if expected_dim !== nothing && dim != expected_dim
+        throw(DimensionMismatch(
+            "embedding dimension ($dim) does not match expected dimension ($expected_dim)"))
+    end
+    if chunks !== nothing && length(chunks) != n
+        throw(DimensionMismatch(
+            "number of chunks ($(length(chunks))) does not match embedding columns ($n)"))
+    end
+    return (dim, n)
+end
+
+"""
+    check_k(k) -> Int
+
+Validate a nearest-neighbour count, throwing `ArgumentError` unless `k > 0`.
+"""
+function check_k(k::Integer)
+    k > 0 || throw(ArgumentError("k must be positive, got $k"))
+    return Int(k)
+end
 
 """
     build_index_rag(cfg, files; embedder_kwargs=NamedTuple())
@@ -30,47 +81,103 @@ function build_index_rag(cfg, files; embedder_kwargs=NamedTuple())
 end
 
 """
-    get_schema(schema_name=nothing, model=nothing)
+    require_main_module(name::Symbol, hint::AbstractString) -> Module
 
-Return a PromptingTools schema instance inferred from `schema_name` or `model`.
+Return the module `name` if the driver session has loaded it into `Main`,
+otherwise throw an `ArgumentError` carrying `hint`.
 
-Tries to construct `<Name>Schema()` from PromptingTools when available, falls
-back to `PromptingTools.OllamaSchema()`.
-
-# Arguments
-- `schema_name::Union{Nothing,String}`: Explicit schema name (e.g. `"Ollama"`, `"HuggingFace"`).
-- `model::Union{Nothing,String}`: Model name used for heuristic detection (e.g. `"hf:..."` triggers HuggingFaceSchema).
-
-# Returns
-A PromptingTools schema instance.
+Optional backends (FAISS, FunSQL) are deliberately *not* hard dependencies of
+HealthLLM: they are heavy, and only some workflows need them. This is the single
+place that resolves such a module, so every optional backend fails the same way
+with an actionable message instead of a `MethodError` deep inside a call.
 
 # Example
 
 ```julia
-get_schema("Ollama")                    # -> OllamaSchema()
-get_schema(nothing, "hf:facebook/opt-350m")  # -> HuggingFaceSchema()
+FunSQL = require_main_module(:FunSQL, "Install FunSQL.jl and run `using FunSQL`.")
 ```
 """
+function require_main_module(name::Symbol, hint::AbstractString)
+    isdefined(Main, name) && return getfield(Main, name)
+    throw(ArgumentError("$name is not loaded. $hint"))
+end
+
+"""
+    render_provenance(md::AbstractDict; separator=" › ", maxlen=512) -> String
+
+Render grounding metadata as a single provenance string,
+`"<url-or-source> › <heading-or-group>"`, truncated to `maxlen` characters.
+
+Either half may be missing: with no parent heading only the base is returned, and
+with no base only the parent. Both the retrieval-index provenance recorded by
+`chunk_provenance` and the per-chunk tag rendered into a prompt by
+`format_context` go through here, so the two cannot drift apart.
+
+# Example
+
+```julia
+render_provenance(Dict{Symbol,Any}(:url => "http://cdm", :heading => "person"))
+# "http://cdm › person"
+```
+"""
+function render_provenance(md::AbstractDict; separator::AbstractString=" › ", maxlen::Integer=512)
+    base = string(get(md, :url, ""))
+    isempty(base) && (base = string(get(md, :source, "")))
+    parent = string(get(md, :heading, get(md, :group, "")))
+    prov = isempty(parent) ? base :
+           isempty(base) ? parent :
+           string(base, separator, parent)
+    return first(prov, maxlen)
+end
+
+"""
+    get_schema(provider::Symbol)
+    get_schema(schema_name=nothing, model=nothing)
+
+Return a PromptingTools schema instance.
+
+The `Symbol` method is the explicit form: `:ollama` and `:huggingface` map
+directly onto their schemas. The two-argument method is the heuristic form used
+when only user-supplied strings are available — it tries `<Name>Schema` from
+`schema_name`, then sniffs `model` for a HuggingFace marker (`"hf:"`, ...), and
+finally falls back to `PromptingTools.OllamaSchema()`.
+
+HuggingFace resolves to [`HuggingFaceOpenAISchema`](@ref), which this package
+defines: PromptingTools has no HuggingFace schema of its own.
+
+# Example
+
+```julia
+get_schema(:ollama)                          # -> OllamaSchema()
+get_schema(:huggingface)                     # -> HuggingFaceOpenAISchema()
+get_schema("HuggingFace")                    # -> HuggingFaceOpenAISchema()
+get_schema(nothing, "hf:facebook/opt-350m")  # -> HuggingFaceOpenAISchema()
+```
+"""
+function get_schema(provider::Symbol)
+    provider === :ollama && return PromptingTools.OllamaSchema()
+    provider === :huggingface && return HuggingFaceOpenAISchema()
+    throw(ArgumentError("provider must be :ollama or :huggingface, got :$provider"))
+end
+
 function get_schema(schema_name::Union{Nothing,String}=nothing, model::Union{Nothing,String}=nothing)
     if schema_name !== nothing
+        _looks_like_huggingface(schema_name) && return HuggingFaceOpenAISchema()
         ctor = Symbol(string(schema_name) * "Schema")
-        if isdefined(PromptingTools, ctor)
-            return getfield(PromptingTools, ctor)()
-        end
+        isdefined(PromptingTools, ctor) && return getfield(PromptingTools, ctor)()
     end
 
-    if model !== nothing
-        low = lowercase(model)
-        if startswith(low, "hf:") || occursin("huggingface", low) || occursin("hf/", low) || occursin("hf-", low)
-            if isdefined(PromptingTools, :HuggingFaceSchema)
-                return PromptingTools.HuggingFaceSchema()
-            end
-
-            return PromptingTools.OllamaSchema()
-        end
-    end
+    model !== nothing && _looks_like_huggingface(model) && return HuggingFaceOpenAISchema()
 
     return PromptingTools.OllamaSchema()
+end
+
+# Recognises both a schema name ("HuggingFace") and a model reference
+# ("hf:org/repo"), hence `name` rather than `model`.
+function _looks_like_huggingface(name::AbstractString)
+    low = lowercase(name)
+    return startswith(low, "hf:") || occursin("huggingface", low) ||
+           occursin("hf/", low) || occursin("hf-", low)
 end
 
 """
@@ -94,6 +201,11 @@ end
 
 Download and load a HuggingFace model by name using HuggingFaceHub.jl.
 
+The download entry point is probed at run time (`snapshot`, then `repo_download`,
+then `info`/`file_download`) because HuggingFaceHub.jl has moved it across
+versions. Any failure — no network, gated repo, unknown model — is reported as a
+warning and returned as a non-downloaded result rather than thrown.
+
 # Arguments
 - `model::String`: HuggingFace model identifier (e.g. `"gpt2"`, `"facebook/opt-350m"`).
 
@@ -113,45 +225,28 @@ end
 ```
 """
 function load_huggingface_model(model::String; token::Union{Nothing,String}=nothing)
-    if isdefined(Main, :HuggingFaceHub)
+    auth = token === nothing ? NamedTuple() : (; token=token)
+
+    for entry in (:snapshot, :repo_download)
+        isdefined(HuggingFaceHub, entry) || continue
         try
-            HF = Main.HuggingFaceHub
-            if isdefined(HF, :snapshot)
-                if token === nothing
-                    p = HF.snapshot(model)
-                else
-                    p = HF.snapshot(model; token=token)
-                end
-                return HuggingFaceLoadResult(string(p), nothing, true)
-            elseif isdefined(HF, :repo_download)
-                if token === nothing
-                    p = HF.repo_download(model)
-                else
-                    p = HF.repo_download(model; token=token)
-                end
-                return HuggingFaceLoadResult(string(p), nothing, true)
-            else
-                try
-                    info = HF.info(HF.Model, model)
-                    if isdefined(HF, :file_download)
-                        localdir = HF.file_download(info, ".")
-                        return HuggingFaceLoadResult(string(localdir), info, true)
-                    else
-                        return HuggingFaceLoadResult(nothing, info, false)
-                    end
-                catch err
-                    @warn "HuggingFaceHub helpers present but download failed: $err"
-                    return HuggingFaceLoadResult(nothing, nothing, false)
-                end
-            end
+            path = getproperty(HuggingFaceHub, entry)(model; auth...)
+            return HuggingFaceLoadResult(string(path), nothing, true)
         catch err
-            @warn "HuggingFaceHub.jl present but operation failed: $err"
+            @warn "HuggingFaceHub.$entry failed for $model" exception = err
             return HuggingFaceLoadResult(nothing, nothing, false)
         end
     end
 
-    @warn "HuggingFaceHub.jl not available — returning model string. Install HuggingFaceHub.jl for direct downloads."
-    return HuggingFaceLoadResult(nothing, model, false)
+    try
+        info = HuggingFaceHub.info(HuggingFaceHub.Model, model)
+        isdefined(HuggingFaceHub, :file_download) ||
+            return HuggingFaceLoadResult(nothing, info, false)
+        return HuggingFaceLoadResult(string(HuggingFaceHub.file_download(info, ".")), info, true)
+    catch err
+        @warn "HuggingFaceHub metadata lookup/download failed for $model" exception = err
+        return HuggingFaceLoadResult(nothing, nothing, false)
+    end
 end
 
 """
@@ -165,7 +260,7 @@ Extensions are matched case-insensitively (e.g. `".jl"`).
 - `extensions::AbstractVector{<:AbstractString}`: File extensions to match (e.g. `[".jl", ".md"]`).
 
 # Returns
-- `Vector{String}`: Sorted list of full file paths matching the given extensions.
+- `Vector{String}`: List of full file paths matching the given extensions.
 
 # Example
 
@@ -183,8 +278,7 @@ function collect_files_with_extensions(
         for file_name in file_names
             extension = lowercase(splitext(file_name)[2])
             if extension in normalized_extensions
-                full_path = joinpath(root, file_name)
-                push!(files, full_path)
+                push!(files, joinpath(root, file_name))
             end
         end
     end
@@ -253,11 +347,8 @@ register_models("hf:facebook/opt-350m", "hf:all-MiniLM-L6-v2"; schema_name="Hugg
 ```
 """
 function register_models(model_name::String, model_embedding::String; schema_name::Union{Nothing,String}=nothing)
-    schema_for_generator = get_schema(schema_name, model_name)
-    schema_for_embedder = get_schema(schema_name, model_embedding)
-
-    PromptingTools.register_model!(name=model_name, schema=schema_for_generator)
-    PromptingTools.register_model!(name=model_embedding, schema=schema_for_embedder)
+    PromptingTools.register_model!(name=model_name, schema=get_schema(schema_name, model_name))
+    PromptingTools.register_model!(name=model_embedding, schema=get_schema(schema_name, model_embedding))
 
     PromptingTools.MODEL_CHAT = model_name
     PromptingTools.MODEL_EMBEDDING = model_embedding
