@@ -12,6 +12,8 @@ ti = time()
     include("hf_load_tests.jl")
     include("FunSQLTest.jl")
     include("IngestionTest.jl")
+    include("EmbeddingsTest.jl")
+    include("StorageTest.jl")
 end
 
 ti = time() - ti
