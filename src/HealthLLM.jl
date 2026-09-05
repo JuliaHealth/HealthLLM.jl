@@ -30,6 +30,8 @@ import .Ingestion: SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
     default_search_provider, web_search,
     CURATED_SOURCES, fetch_url, html_to_text, fetch_curated,
+    Chunk, AbstractChunkStrategy, RecursiveChunk, HeaderChunk, RecordChunk, FixedSizeChunk,
+    chunk, chunk_document, chunk_provenance, default_strategy, load_funsql_examples,
     ingest, ingest_to_index
 
 export PromptingTools, RAGTools
@@ -49,6 +51,8 @@ export SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
     default_search_provider, web_search,
     CURATED_SOURCES, fetch_url, html_to_text, fetch_curated,
+    Chunk, AbstractChunkStrategy, RecursiveChunk, HeaderChunk, RecordChunk, FixedSizeChunk,
+    chunk, chunk_document, chunk_provenance, default_strategy, load_funsql_examples,
     ingest, ingest_to_index
 
 end
