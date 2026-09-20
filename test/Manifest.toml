@@ -189,11 +189,6 @@ git-tree-sha1 = "51059d23c8bb67911a2e6fd5130229113735fc7e"
 uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "1.11.0"
 
-[[deps.HealthLLM]]
-deps = ["HTTP", "HuggingFaceHub", "JSON3", "LibPQ", "LinearAlgebra", "PromptingTools", "RAGTools", "Serialization", "SparseArrays", "Statistics", "URIs"]
-path = "E:\\HealthLLM.jl"
-uuid = "1de6b779-c1fb-4125-b891-fad447459241"
-version = "0.1.0"
 
 [[deps.HuggingFaceHub]]
 deps = ["Dates", "Downloads", "HTTP", "JSON3", "Scratch"]
