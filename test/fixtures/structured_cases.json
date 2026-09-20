@@ -1,0 +1,44 @@
+[
+  {
+    "name": "triage_extraction_01",
+    "prompt": "Extract structured triage assessment from clinical text.",
+    "response_json": "{\"patient_id\": 1, \"primary_condition\": \"hypertension\", \"urgency\": \"moderate\", \"systolic_bp\": 145, \"confidence\": 0.94}",
+    "required_keys": ["patient_id", "primary_condition", "urgency", "systolic_bp", "confidence"],
+    "key_types": {
+      "patient_id": "Int64",
+      "primary_condition": "String",
+      "urgency": "String",
+      "systolic_bp": "Int64",
+      "confidence": "Float64"
+    },
+    "range_constraints": {
+      "confidence": [0.0, 1.0],
+      "systolic_bp": [60.0, 250.0]
+    },
+    "allowed_values": {
+      "urgency": ["low", "moderate", "high", "critical"]
+    },
+    "category": "structured"
+  },
+  {
+    "name": "lab_extraction_02",
+    "prompt": "Extract structured HbA1c observation.",
+    "response_json": "{\"test_name\": \"HbA1c\", \"value\": 7.2, \"units\": \"%\", \"status\": \"elevated\", \"confidence\": 0.98}",
+    "required_keys": ["test_name", "value", "units", "status", "confidence"],
+    "key_types": {
+      "test_name": "String",
+      "value": "Float64",
+      "units": "String",
+      "status": "String",
+      "confidence": "Float64"
+    },
+    "range_constraints": {
+      "confidence": [0.0, 1.0],
+      "value": [3.0, 20.0]
+    },
+    "allowed_values": {
+      "status": ["normal", "borderline", "elevated", "critical"]
+    },
+    "category": "structured"
+  }
+]
