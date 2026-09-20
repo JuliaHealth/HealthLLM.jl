@@ -1,0 +1,31 @@
+[
+  {
+    "name": "hypertension_definition",
+    "prompt": "What is hypertension and what are standard blood pressure cutoffs?",
+    "mock_response": "Hypertension is persistently elevated blood pressure. Stage 1 hypertension is defined as systolic blood pressure of 130-139 mmHg or diastolic of 80-89 mmHg.",
+    "required_concepts": [
+      "elevated blood pressure",
+      "systolic",
+      "diastolic"
+    ],
+    "forbidden_concepts": [
+      "cure guaranteed",
+      "no medication needed"
+    ],
+    "validator_type": "required_content",
+    "category": "golden"
+  },
+  {
+    "name": "diabetes_lifestyle",
+    "prompt": "What lifestyle modifications are recommended for Type 2 Diabetes management?",
+    "mock_response": "Recommended lifestyle modifications for Type 2 Diabetes include regular physical exercise, weight management, and a balanced low glycemic index diet.",
+    "required_concepts": [
+      "exercise",
+      "diet",
+      "weight"
+    ],
+    "forbidden_concepts": [],
+    "validator_type": "required_content",
+    "category": "golden"
+  }
+]

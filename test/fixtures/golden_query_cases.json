@@ -1,0 +1,29 @@
+[
+  {
+    "name": "find_elderly_patients",
+    "description": "Find all patients older than 65 years",
+    "question": "Find all patients older than 65 years",
+    "generated_sql": "SELECT patient_id, first_name, last_name, age FROM patients WHERE age > 65 ORDER BY patient_id;",
+    "expected_patient_ids": [1, 3],
+    "validator_type": "execution",
+    "category": "golden"
+  },
+  {
+    "name": "hypertension_patients",
+    "description": "Retrieve patient IDs diagnosed with essential hypertension (code I10)",
+    "question": "Which patients have essential hypertension?",
+    "generated_sql": "SELECT DISTINCT patient_id FROM conditions WHERE code = 'I10' ORDER BY patient_id;",
+    "expected_patient_ids": [1, 3],
+    "validator_type": "execution",
+    "category": "golden"
+  },
+  {
+    "name": "high_a1c_observations",
+    "description": "Find observations where HbA1c is above 7.5%",
+    "question": "List all observations with HbA1c above 7.5%",
+    "generated_sql": "SELECT obs_id, patient_id, value_numeric FROM observations WHERE code = '4548-4' AND value_numeric > 7.5;",
+    "expected_obs_ids": [205],
+    "validator_type": "execution",
+    "category": "golden"
+  }
+]
