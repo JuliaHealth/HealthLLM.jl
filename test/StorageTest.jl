@@ -1,9 +1,24 @@
 using HealthLLM
 using HealthLLM.Storage: LocalVectorStore, PgVectorStore, FaissVectorStore,
-    add!, search, save, load
+    Hit, add!, search, retrieve, save, load, _pg_score
 using HealthLLM.Database: _pg_metric_op, _check_identifier, _pg_create_sql, _pg_search_sql
 
 @testset "Storage" begin
+    @testset "Hit is the one hit shape" begin
+        h = Hit(3, "person table", 0.87)
+        @test h.index == 3
+        @test h.chunk == "person table"
+        @test h.score == 0.87
+        @test h.distance === nothing
+        @test occursin("person table", sprint(show, h))
+
+        # pgvector distances flip to the shared larger-is-more-similar convention
+        @test _pg_score(:cosine, 0.25) ≈ 0.75      # cosine distance -> similarity
+        @test _pg_score(:dot, -8.0) ≈ 8.0          # negative inner product -> IP
+        @test _pg_score(:l2, 2.0) ≈ -2.0           # nearer (smaller d) scores higher
+        @test _pg_score(:l2, 1.0) > _pg_score(:l2, 5.0)
+    end
+
     @testset "LocalVectorStore basics" begin
         store = LocalVectorStore(3)
         @test length(store) == 0
@@ -14,6 +29,7 @@ using HealthLLM.Database: _pg_metric_op, _check_identifier, _pg_create_sql, _pg_
 
         hits = search(store, Float32[0.9, 0.1, 0.0], 2)
         @test length(hits) == 2
+        @test hits isa Vector{Hit}
         @test hits[1].chunk == "x-axis"
         @test hits[1].score > hits[2].score
         @test hits[1].score ≈ 1.0 atol = 0.2
@@ -54,6 +70,32 @@ using HealthLLM.Database: _pg_metric_op, _check_identifier, _pg_create_sql, _pg_
         @test restored.embeddings == store.embeddings
         hits = search(restored, Float32[1, 0, 0], 1)
         @test hits[1].chunk == "x"
+    end
+
+    @testset "retrieve (text query via injected embedder)" begin
+        store = LocalVectorStore(3)
+        add!(store, Float32[1 0 0; 0 1 0; 0 0 1], ["x-axis", "y-axis", "z-axis"])
+
+        # Deterministic stub embedder: maps the query text to an axis vector.
+        # Signature must match how retrieve calls it: embedder(query, model; provider, kwargs...)
+        function stub(text, model; provider=:ollama, kwargs...)
+            v = startswith(text, "x") ? Float32[1, 0, 0] :
+                startswith(text, "y") ? Float32[0, 1, 0] : Float32[0, 0, 1]
+            return reshape(v, :, 1)
+        end
+
+        hits = retrieve(store, "x direction please", 2; embedder=stub)
+        @test length(hits) == 2
+        @test hits[1].chunk == "x-axis"
+        @test hits[1].score > hits[2].score
+
+        @test retrieve(store, "y things", 1; embedder=stub)[1].chunk == "y-axis"
+
+        # Embedder may also return a bare vector (not a dim×1 matrix).
+        vecstub(text, model; provider=:ollama, kwargs...) = Float32[0, 0, 1]
+        @test retrieve(store, "anything", 1; embedder=vecstub)[1].chunk == "z-axis"
+
+        @test_throws ArgumentError retrieve(store, ""; embedder=stub)
     end
 
     @testset "pgvector SQL helpers" begin
