@@ -9,8 +9,8 @@ prompt asking the model to translate the question into a FunSQL query.
 
 The two moving parts injected into every prompt are:
 
-1. **Retrieved context** — the ranked chunks from `retrieve`/`search`
-   (or raw strings / `Chunk`s), formatted as numbered, optionally
+1. **Retrieved context** — the ranked chunks from [`retrieve`](@ref HealthLLM.Storage.retrieve)/[`search`](@ref HealthLLM.Storage.search)
+   (or raw strings / [`Chunk`](@ref HealthLLM.Ingestion.Chunk)s), formatted as numbered, optionally
    provenance-tagged blocks so the model can ground its answer and cite sources.
 2. **The analytical question** — the user's natural-language request, verbatim.
 
@@ -188,7 +188,7 @@ _score_str(s) = ""
 
 Render the retrieved `hits` into a numbered context block per `template`. `hits`
 is any iterable of retrieval results — plain strings, `search`/`retrieve` hit
-NamedTuples, or `Chunk`s. Blank chunks are dropped; the first
+NamedTuples, or [`Chunk`](@ref HealthLLM.Ingestion.Chunk)s. Blank chunks are dropped; the first
 `template.max_chunks` are kept, and chunks are admitted only while the running
 size stays within `template.max_context_chars` (a single over-budget chunk is
 truncated). Returns `template.empty_context_note` when nothing survives.
@@ -244,7 +244,7 @@ Returns a NamedTuple with three fields, so both prompting styles are covered:
 - `prompt::String` — `system` and `user` joined, for single-string callers.
 
 `hits` accepts plain strings, `search`/`retrieve` hit NamedTuples, or
-`Chunk`s (see [`format_context`](@ref)). Throws `ArgumentError` on an
+[`Chunk`](@ref HealthLLM.Ingestion.Chunk)s (see [`format_context`](@ref)). Throws `ArgumentError` on an
 empty `question`.
 
 # Example
