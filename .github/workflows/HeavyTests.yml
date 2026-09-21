@@ -1,0 +1,29 @@
+name: Heavy Tests
+on:
+  workflow_dispatch:
+    inputs:
+      heavy_timeout:
+        description: Timeout in minutes for the heavy test job
+        required: true
+        default: "120"
+jobs:
+  heavy-tests:
+    name: Heavy Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ fromJSON(inputs.heavy_timeout) }}
+    permissions:
+      actions: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.11'
+          arch: x64
+      - uses: julia-actions/cache@v2
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Run heavy dataset tests
+        shell: julia --color=yes --project=. {0}
+        run: |
+          ENV["RUN_HEAVY_TESTS"] = "1"
+          include("test/FunSQLTest.jl")
