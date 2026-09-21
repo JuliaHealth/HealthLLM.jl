@@ -23,6 +23,7 @@ module Embeddings
 
 using PromptingTools
 using LinearAlgebra
+using ..Utils: get_schema, check_dims
 
 export EmbeddingModel, EMBEDDING_MODELS, DEFAULT_EMBEDDING_MODEL,
     embedding_model, embedding_ref, embedding_dimension,
@@ -119,11 +120,6 @@ Return the output dimension of the named embedding model.
 """
 embedding_dimension(name::AbstractString=DEFAULT_EMBEDDING_MODEL) = embedding_model(name).dim
 
-_schema(provider::Symbol) =
-    provider === :ollama ? PromptingTools.OllamaSchema() :
-    provider === :huggingface ? PromptingTools.HuggingFaceSchema() :
-    throw(ArgumentError("provider must be :ollama or :huggingface, got :$provider"))
-
 # Normalise an aiembed result into a dim × n Float32 matrix (columns = chunks).
 function _as_matrix(content)
     m = content isa AbstractVector ? reshape(content, :, 1) : content
@@ -152,7 +148,7 @@ function embed(texts::AbstractVector{<:AbstractString},
     name::AbstractString=DEFAULT_EMBEDDING_MODEL; provider::Symbol=:ollama, kwargs...)
     isempty(texts) && throw(ArgumentError("`texts` is empty; nothing to embed."))
     ref = embedding_ref(name; provider=provider)
-    res = PromptingTools.aiembed(_schema(provider), texts; model=ref, kwargs...)
+    res = PromptingTools.aiembed(get_schema(provider), texts; model=ref, kwargs...)
     return _as_matrix(res.content)
 end
 
@@ -213,17 +209,10 @@ function validate_embeddings(embeddings::AbstractMatrix;
     expected_dim::Union{Nothing,Integer}=nothing,
     chunks::Union{Nothing,AbstractVector}=nothing, atol::Real=1e-4)
 
-    dim, n = size(embeddings)
-    n == 0 && throw(ArgumentError("No embeddings to validate (matrix has zero columns)."))
+    size(embeddings, 2) == 0 &&
+        throw(ArgumentError("No embeddings to validate (matrix has zero columns)."))
+    dim, n = check_dims(embeddings, chunks, expected_dim)
 
-    if expected_dim !== nothing && dim != expected_dim
-        throw(DimensionMismatch(
-            "Embedding dimension ($dim) does not match expected_dim ($expected_dim)."))
-    end
-    if chunks !== nothing && length(chunks) != n
-        throw(DimensionMismatch(
-            "Number of chunks ($(length(chunks))) does not match embedding columns ($n)."))
-    end
     all(isfinite, embeddings) ||
         throw(ArgumentError("Embeddings contain non-finite values (NaN/Inf)."))
 

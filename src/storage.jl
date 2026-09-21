@@ -16,7 +16,7 @@ same way regardless of where they live:
 Each `AbstractVectorStore` supports:
 
 - [`add!`](@ref)`(store, embeddings, chunks)` — append `dim × n` embeddings with their texts;
-- [`search`](@ref)`(store, query, k)` — return the `k` nearest `(; chunk, score, ...)` hits;
+- [`search`](@ref)`(store, query, k)` — return the `k` nearest [`Hit`](@ref)s;
 - `Base.length(store)` — number of stored vectors;
 - [`save`](@ref) / [`load`](@ref) — persist and restore where the backend supports it.
 """
@@ -26,9 +26,10 @@ using LinearAlgebra
 using Serialization
 import ..Database: store_embeddings_pgvector, search_embeddings_pgvector
 using ..Embeddings: cosine_similarity, embed, DEFAULT_EMBEDDING_MODEL
+using ..Utils: require_main_module, check_dims, check_k
 
 export AbstractVectorStore, LocalVectorStore, PgVectorStore, FaissVectorStore,
-    add!, search, retrieve, save, load
+    Hit, add!, search, retrieve, save, load
 
 """
     AbstractVectorStore
@@ -37,6 +38,37 @@ Supertype for all vector-store backends. Concrete stores implement [`add!`](@ref
 [`search`](@ref), and `Base.length`.
 """
 abstract type AbstractVectorStore end
+
+"""
+    Hit(index, chunk, score, distance=nothing)
+
+One retrieval result, in the shape every backend returns. A uniform hit means
+downstream code — prompt building above all — never has to know which store the
+chunk came from.
+
+# Fields
+- `index::Int`: Position of the vector in the store, or the database row id for
+  [`PgVectorStore`](@ref).
+- `chunk::String`: The stored text.
+- `score::Float64`: Similarity, **larger is always more similar**, regardless of
+  the backend's native metric. Cosine backends report cosine similarity in
+  `[-1, 1]`; distance-based ones report a negated distance.
+- `distance::Union{Float64,Nothing}`: The backend's raw distance where it has
+  one (pgvector), else `nothing`.
+"""
+struct Hit
+    index::Int
+    chunk::String
+    score::Float64
+    distance::Union{Float64,Nothing}
+end
+
+Hit(index::Integer, chunk::AbstractString, score::Real) =
+    Hit(Int(index), String(chunk), Float64(score), nothing)
+
+Base.show(io::IO, h::Hit) =
+    print(io, "Hit(", h.index, ", score=", round(h.score, digits=3), ", ",
+        repr(first(h.chunk, 40)), ")")
 
 """
     retrieve(store, query::AbstractString, k=5;
@@ -48,8 +80,8 @@ Per-query retrieval: embed a natural-language `query` with `model` and return th
 pre-computed query *vector*, `retrieve` takes the *string* and handles embedding.
 
 Works with any [`AbstractVectorStore`](@ref); the returned hits are exactly what the
-backend's [`search`](@ref) yields (`(; index, chunk, score)` for local/FAISS stores,
-`(; id, chunk, distance)` for pgvector). `provider` and extra `kwargs` are forwarded
+backend's [`search`](@ref) yields — a `Vector{`[`Hit`](@ref)`}` whatever the backend.
+`provider` and extra `kwargs` are forwarded
 to the embedder. Pass `embedder` to substitute the embedding function (useful for
 tests or a cached embedder); it is called as `embedder(query, model; provider, kwargs...)`
 and must return the query embedding as a `dim × 1` matrix or a length-`dim` vector.
@@ -128,11 +160,7 @@ L2-normalised first when `store.normalize` is set. Errors if the dimension or th
 column/chunk counts do not line up.
 """
 function add!(store::LocalVectorStore, embeddings::AbstractMatrix, chunks::AbstractVector)
-    dim, n = size(embeddings)
-    dim == store.dim ||
-        throw(DimensionMismatch("embedding dim ($dim) != store dim ($(store.dim))"))
-    length(chunks) == n ||
-        throw(DimensionMismatch("chunk count ($(length(chunks))) != columns ($n)"))
+    check_dims(embeddings, chunks, store.dim)
     E = Matrix{Float32}(embeddings)
     store.normalize && (E = Matrix{Float32}(_normalize_cols(E)))
     store.embeddings = hcat(store.embeddings, E)
@@ -141,21 +169,21 @@ function add!(store::LocalVectorStore, embeddings::AbstractMatrix, chunks::Abstr
 end
 
 """
-    search(store::LocalVectorStore, query, k=5) -> Vector{NamedTuple}
+    search(store::LocalVectorStore, query, k=5) -> Vector{Hit}
 
 Return the `k` most cosine-similar chunks to `query` (a length-`dim` vector), as
-`(; index, chunk, score)` tuples ordered most-similar first. `score` is the cosine
-similarity in `[-1, 1]`.
+[`Hit`](@ref)s ordered most-similar first. `score` is the cosine similarity in
+`[-1, 1]`.
 """
 function search(store::LocalVectorStore, query::AbstractVector, k::Integer=5)
-    k > 0 || throw(ArgumentError("k must be positive, got $k"))
+    check_k(k)
     length(query) == store.dim ||
         throw(DimensionMismatch("query length ($(length(query))) != store dim ($(store.dim))"))
     n = length(store)
-    n == 0 && return NamedTuple[]
+    n == 0 && return Hit[]
     scores = [cosine_similarity(view(store.embeddings, :, i), query) for i in 1:n]
     order = partialsortperm(scores, 1:min(k, n); rev=true)
-    return [(; index=i, chunk=store.chunks[i], score=scores[i]) for i in order]
+    return [Hit(i, store.chunks[i], scores[i]) for i in order]
 end
 
 """
@@ -235,16 +263,25 @@ function add!(store::PgVectorStore, embeddings::AbstractMatrix, chunks::Abstract
 end
 
 """
-    search(store::PgVectorStore, query, k=5) -> Vector{NamedTuple}
+    search(store::PgVectorStore, query, k=5) -> Vector{Hit}
 
-Return the `k` nearest stored chunks to `query` as `(; id, chunk, distance)` tuples,
-ordered most-similar first using `store.metric`. See
-[`search_embeddings_pgvector`](@ref).
+Return the `k` nearest stored chunks to `query` as [`Hit`](@ref)s, ordered
+most-similar first using `store.metric`. The row id lands in `index` and the raw
+pgvector distance in `distance`; `score` is that distance flipped to the
+larger-is-more-similar convention every backend shares (`1 - d` for cosine, `-d`
+for dot and L2). See [`search_embeddings_pgvector`](@ref).
 """
 function search(store::PgVectorStore, query::AbstractVector, k::Integer=5)
-    return search_embeddings_pgvector(store.conn, query, k;
+    rows = search_embeddings_pgvector(store.conn, query, k;
         table=store.table, metric=store.metric)
+    return [Hit(row.id, row.chunk, _pg_score(store.metric, row.distance), Float64(row.distance))
+            for row in rows]
 end
+
+# pgvector distances all order ascending; map them onto the shared
+# larger-is-more-similar `score`. Cosine distance is 1 - cos, so 1 - d recovers
+# the similarity; dot (`<#>`) and L2 (`<->`) are simply negated.
+_pg_score(metric::Symbol, d) = metric === :cosine ? 1.0 - Float64(d) : -Float64(d)
 
 # ---------------------------------------------------------------------------
 # FaissVectorStore
@@ -282,10 +319,9 @@ mutable struct FaissVectorStore <: AbstractVectorStore
     normalize::Bool
 end
 
-_faiss_module() = isdefined(Main, :Faiss) ? Main.Faiss :
-    throw(ArgumentError(
-        "FAISS backend requires Faiss.jl. Install it and run `using Faiss` before " *
-        "constructing a FaissVectorStore."))
+_faiss_module() = require_main_module(:Faiss,
+    "The FAISS backend requires Faiss.jl: install it and run `using Faiss` " *
+    "before constructing a FaissVectorStore.")
 
 function FaissVectorStore(dim::Integer; metric::Symbol=:cosine)
     dim > 0 || throw(ArgumentError("dim must be positive, got $dim"))
@@ -311,11 +347,7 @@ FAISS index. FAISS expects one row per vector, so the `dim × n` matrix is trans
 to `n × dim` before being handed to `Faiss.add`.
 """
 function add!(store::FaissVectorStore, embeddings::AbstractMatrix, chunks::AbstractVector)
-    dim, n = size(embeddings)
-    dim == store.dim ||
-        throw(DimensionMismatch("embedding dim ($dim) != store dim ($(store.dim))"))
-    length(chunks) == n ||
-        throw(DimensionMismatch("chunk count ($(length(chunks))) != columns ($n)"))
+    check_dims(embeddings, chunks, store.dim)
     Faiss = _faiss_module()
     E = Matrix{Float32}(embeddings)
     store.normalize && (E = Matrix{Float32}(_normalize_cols(E)))
@@ -325,30 +357,30 @@ function add!(store::FaissVectorStore, embeddings::AbstractMatrix, chunks::Abstr
 end
 
 """
-    search(store::FaissVectorStore, query, k=5) -> Vector{NamedTuple}
+    search(store::FaissVectorStore, query, k=5) -> Vector{Hit}
 
-Return the `k` nearest chunks to `query` as `(; index, chunk, score)` tuples. `score`
-is the raw FAISS score (inner product for `:cosine`/`:dot`, negative L2 distance for
-`:l2`, so larger is always more similar).
+Return the `k` nearest chunks to `query` as [`Hit`](@ref)s. `score` is the raw FAISS
+score (inner product for `:cosine`/`:dot`, negative L2 distance for `:l2`, so larger
+is always more similar).
 """
 function search(store::FaissVectorStore, query::AbstractVector, k::Integer=5)
-    k > 0 || throw(ArgumentError("k must be positive, got $k"))
+    check_k(k)
     length(query) == store.dim ||
         throw(DimensionMismatch("query length ($(length(query))) != store dim ($(store.dim))"))
     n = length(store)
-    n == 0 && return NamedTuple[]
+    n == 0 && return Hit[]
     Faiss = _faiss_module()
     q = Matrix{Float32}(reshape(collect(query), :, 1))
     store.normalize && (q = Matrix{Float32}(_normalize_cols(q)))
     D, I = Faiss.search(store.index, permutedims(q), min(k, n))
     ids = vec(I)
     dists = vec(D)
-    hits = NamedTuple[]
+    hits = Hit[]
     for (rank, id) in enumerate(ids)
         idx = Int(id) + 1
         (idx < 1 || idx > n) && continue
         score = store.metric === :l2 ? -dists[rank] : dists[rank]
-        push!(hits, (; index=idx, chunk=store.chunks[idx], score=score))
+        push!(hits, Hit(idx, store.chunks[idx], score))
     end
     return hits
 end

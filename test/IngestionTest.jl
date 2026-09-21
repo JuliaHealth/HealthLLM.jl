@@ -149,7 +149,7 @@ using HealthLLM.Ingestion: SourceDocument, SearchResult,
             @test docchunks[1].metadata[:url] == "http://cdm"
             @test docchunks[1].metadata[:heading] == "person"
             # provenance string ties the chunk back to its source and parent table
-            @test chunk_provenance(docchunks[1]) == "http://cdm > person"
+            @test chunk_provenance(docchunks[1]) == "http://cdm › person"
             @test length(chunk_provenance(docchunks[1])) <= 512
             # explicit strategy override is honoured
             @test length(chunk_document(omop; strategy=FixedSizeChunk(; size=1_000))) == 1
