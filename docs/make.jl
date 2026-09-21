@@ -8,8 +8,8 @@ makedocs(;
     authors="ParamThakkar123 <paramthakkar864@gmail.com> and TheCedarPrince <jacobszelko@gmail.com>",
     sitename="HealthLLM.jl",
     format=Documenter.HTML(;
-        canonical="https://ParamThakkar123.github.io/HealthLLM.jl",
-        edit_link="master",
+        canonical="https://JuliaHealth.github.io/HealthLLM.jl",
+        edit_link="main",
         assets=String[],
     ),
     pages=[
@@ -22,6 +22,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ParamThakkar123/HealthLLM.jl",
-    devbranch="master",
+    repo="github.com/JuliaHealth/HealthLLM.jl",
+    devbranch="main",
 )

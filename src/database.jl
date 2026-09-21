@@ -1,5 +1,9 @@
 module Database
+
 using LibPQ
+using ..Utils: check_dims, check_k
+
+export store_embeddings_pgvector, search_embeddings_pgvector, validate_embeddings_inputs
 
 function _vector_to_pgarray(v::AbstractVector{T}) where T<:Real
     string("[", join(v, ","), "]")
@@ -30,12 +34,15 @@ _pg_create_sql(table::AbstractString, dim::Integer) = """
     )
 """
 
-_pg_search_sql(table::AbstractString, metric::Symbol) = """
-    SELECT id, chunk, embedding $(_pg_metric_op(metric)) \$1 AS distance
-    FROM $(_check_identifier(table))
-    ORDER BY embedding $(_pg_metric_op(metric)) \$1
-    LIMIT \$2
-"""
+function _pg_search_sql(table::AbstractString, metric::Symbol)
+    op = _pg_metric_op(metric)
+    return """
+        SELECT id, chunk, embedding $op \$1 AS distance
+        FROM $(_check_identifier(table))
+        ORDER BY embedding $op \$1
+        LIMIT \$2
+    """
+end
 
 """
     validate_embeddings_inputs(embeddings, chunks, embedding_dimension)
@@ -66,17 +73,7 @@ function validate_embeddings_inputs(
     chunks::AbstractVector,
     embedding_dimension::Integer
 )
-    n_rows, n_cols = size(embeddings)
-    n_rows == embedding_dimension || throw(
-        DimensionMismatch(
-            "Embedding height ($n_rows) must match embedding_dimension ($embedding_dimension)."
-        )
-    )
-    length(chunks) == n_cols || throw(
-        DimensionMismatch(
-            "Number of chunks ($(length(chunks))) must match number of embedding columns ($n_cols)."
-        )
-    )
+    check_dims(embeddings, chunks, embedding_dimension)
     return nothing
 end
 
@@ -111,13 +108,12 @@ function store_embeddings_pgvector(
     table::AbstractString="embeddings"
 )
     validate_embeddings_inputs(embeddings, chunks, embedding_dimension)
-    _check_identifier(table)
 
     LibPQ.execute(conn, _pg_create_sql(table, embedding_dimension))
 
     dense_embeddings = Matrix{Float64}(embeddings)
     chunk_text = String.(chunks)
-    insert_sql = "INSERT INTO $table (chunk, embedding) VALUES (\$1, \$2)"
+    insert_sql = "INSERT INTO $(_check_identifier(table)) (chunk, embedding) VALUES (\$1, \$2)"
 
     LibPQ.execute(conn, "BEGIN")
     try
@@ -159,8 +155,7 @@ function search_embeddings_pgvector(
     table::AbstractString="embeddings",
     metric::Symbol=:cosine
 )
-    k > 0 || throw(ArgumentError("k must be positive, got $k"))
-    _check_identifier(table)
+    check_k(k)
     qvec = _vector_to_pgarray(Vector{Float64}(query))
     res = LibPQ.execute(conn, _pg_search_sql(table, metric), (qvec, k))
     return [(; id=row.id, chunk=row.chunk, distance=row.distance) for row in res]

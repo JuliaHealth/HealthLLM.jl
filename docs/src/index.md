@@ -33,5 +33,5 @@ index = build_index_rag(RAGTools.SimpleIndexer(), files)
 More detailed setup, testing commands, and the end-to-end walkthrough are in [Getting Started](getting-started.md).
 
 ```@autodocs
-Modules = [HealthLLM, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Prompt, HealthLLM.Query, HealthLLM.Ingestion, HealthLLM.Embeddings, HealthLLM.Storage]
+Modules = [HealthLLM, HealthLLM.HuggingFace, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Prompt, HealthLLM.Execution, HealthLLM.Query, HealthLLM.Ingestion, HealthLLM.Embeddings, HealthLLM.Storage]
 ```

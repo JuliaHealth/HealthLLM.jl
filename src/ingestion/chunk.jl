@@ -223,16 +223,14 @@ end
 """
     chunk_provenance(c::Chunk) -> String
 
-Render a chunk's grounding as a single provenance string (`"<url-or-source> >
+Render a chunk's grounding as a single provenance string (`"<url-or-source> ›
 <parent>"`, truncated to 512 chars) suitable for RAGTools chunk sources.
+
+Delegates to [`render_provenance`](@ref), which is also what the prompt layer uses
+to tag a retrieved chunk — so what is stored alongside a vector and what the model
+is shown are the same string.
 """
-function chunk_provenance(c::Chunk)
-    base = get(c.metadata, :url, "")
-    isempty(base) && (base = get(c.metadata, :source, ""))
-    parent = get(c.metadata, :heading, get(c.metadata, :group, ""))
-    prov = isempty(parent) ? base : string(base, " > ", parent)
-    return first(prov, 512)
-end
+chunk_provenance(c::Chunk) = render_provenance(c.metadata)
 
 """
     load_funsql_examples(path; source="FunSQL-examples") -> Vector{SourceDocument}

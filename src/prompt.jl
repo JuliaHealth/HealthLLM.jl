@@ -40,6 +40,8 @@ p.prompt
 """
 module Prompt
 
+using ..Utils: render_provenance
+
 export FUNSQL_SYSTEM_PROMPT, PromptTemplate, DEFAULT_FUNSQL_TEMPLATE,
     format_context, build_prompt
 
@@ -149,7 +151,7 @@ const DEFAULT_FUNSQL_TEMPLATE = PromptTemplate()
 
 # Duck-typed so `Prompt` need not depend on `Storage` or `Ingestion`. Accepts:
 #   * a plain `String`                      -> text only
-#   * a search/retrieve hit NamedTuple      -> `.chunk` text, `.score`/`.distance`
+#   * a `Hit` or search-hit NamedTuple      -> `.chunk` text, `.score`/`.distance`
 #   * a `Chunk` (from Ingestion)            -> `.text`, `.metadata` provenance
 # Returns `(; text, provenance, score)` with empty/nothing where unavailable.
 function _as_context_item(x)
@@ -165,23 +167,12 @@ function _as_context_item(x)
 
     provenance = ""
     if hasproperty(x, :metadata) && getproperty(x, :metadata) isa AbstractDict
-        provenance = _provenance_from_metadata(getproperty(x, :metadata))
+        # Same renderer the ingestion index uses, so a chunk's provenance reads
+        # identically in the prompt and in the store.
+        provenance = render_provenance(getproperty(x, :metadata))
     end
 
     return (; text=String(text), provenance=provenance, score=score)
-end
-
-# Mirror of Ingestion.chunk_provenance, kept local so Prompt stays decoupled:
-# "<url-or-source> › <heading-or-group>".
-function _provenance_from_metadata(md::AbstractDict)
-    base = get(md, :url, "")
-    isempty(base) && (base = get(md, :source, ""))
-    parent = get(md, :heading, get(md, :group, ""))
-    base = string(base)
-    parent = string(parent)
-    isempty(parent) && return base
-    isempty(base) && return parent
-    return string(base, " › ", parent)
 end
 
 _score_str(::Nothing) = ""
