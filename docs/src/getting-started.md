@@ -42,7 +42,10 @@ corpus = write_combined_file(files, "corpus.txt")
 
 ### 2. Register models
 
-Register chat and embedding models for use with `PromptingTools`. Supports Ollama, HuggingFace, and other backends:
+Register chat and embedding models for use with `PromptingTools`. Model names
+prefixed with `hf:` are routed to HuggingFace via [`HuggingFaceOpenAISchema`](@ref)
+(set a token with [`set_huggingface_api_key!`](@ref) or `HF_TOKEN`); everything
+else defaults to Ollama. See [Building Embeddings](embeddings.md) for the details:
 
 ```julia
 register_models("llama3.2", "nomic-embed-text")
