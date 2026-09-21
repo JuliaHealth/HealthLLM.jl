@@ -4,7 +4,7 @@
 
 ```julia
 using Pkg
-Pkg.add(url="https://github.com/ParamThakkar123/HealthLLM.jl")
+Pkg.add(url="https://github.com/JuliaHealth/HealthLLM.jl")
 ```
 
 ## Quick start
