@@ -58,15 +58,24 @@ end
 """
     ingest_to_index(cfg=RAGTools.SimpleIndexer(); sources=keys(CURATED_SOURCES), query=nothing,
                     provider=default_search_provider(), max_results=5, fetch_search_content=true,
-                    timeout=30, min_length=200, embedder_kwargs=NamedTuple(), docs=nothing) -> index
+                    timeout=30, min_length=200, strategy=nothing,
+                    embedder_kwargs=NamedTuple(), docs=nothing) -> index
 
 Ingest curated docs and/or web-search results and build a RAG index directly from
 the in-memory text — no intermediate files.
 
-Documents are chunked with `RAGTools.TextChunker()` and their URLs are recorded as
-chunk sources for provenance. Pass a precomputed `docs` vector (from [`ingest`](@ref))
-to reuse it instead of fetching again. The returned index is ready for
-`generate_funsql_query`.
+Each document is chunked at the granularity appropriate to its content type via
+[`chunk_document`](@ref): FunSQL example records stay whole ([`RecordChunk`](@ref)),
+OMOP/Markdown table sections break on headings ([`HeaderChunk`](@ref)), and prose
+is split recursively ([`RecursiveChunk`](@ref)); fenced code blocks are never split
+mid-expression. Pass an explicit `strategy` (an [`AbstractChunkStrategy`](@ref)) to
+force one for every document. Each chunk's provenance — its source/URL plus the
+parent heading or table it came from — is recorded via [`chunk_provenance`](@ref).
+
+Chunking happens here in-pipeline; `RAGTools.TextChunker()` is then used only as a
+passthrough (a large `max_length` so it does not re-split the already-atomic
+chunks). Pass a precomputed `docs` vector (from [`ingest`](@ref)) to reuse it
+instead of fetching again. The returned index is ready for `generate_funsql_query`.
 
 # Example
 
@@ -81,17 +90,29 @@ answer = generate_funsql_query(index, "nomic-embed-text", "llama3.2",
 """
 function ingest_to_index(cfg=RAGTools.SimpleIndexer();
     docs::Union{Nothing,AbstractVector{SourceDocument}}=nothing,
+    strategy::Union{Nothing,AbstractChunkStrategy}=nothing,
     embedder_kwargs=NamedTuple(), kwargs...)
 
     documents = docs === nothing ? ingest(; kwargs...) : docs
     isempty(documents) &&
         throw(ArgumentError("No documents ingested; nothing to index. Check sources/query and network."))
 
-    contents = [d.content for d in documents]
-    provenance = [isempty(d.url) ? d.source : d.url for d in documents]
+    contents = String[]
+    provenance = String[]
+    for d in documents
+        chunks = strategy === nothing ? chunk_document(d) : chunk_document(d; strategy=strategy)
+        for c in chunks
+            push!(contents, c.text)
+            push!(provenance, chunk_provenance(c))
+        end
+    end
+    isempty(contents) &&
+        throw(ArgumentError("Documents produced no chunks; check content and chunking strategy."))
+
+    passthrough_len = maximum(length, contents) + 1
 
     return RAGTools.build_index(cfg, contents;
         chunker=RAGTools.TextChunker(),
-        chunker_kwargs=(sources=provenance,),
+        chunker_kwargs=(sources=provenance, max_length=passthrough_len),
         embedder_kwargs=embedder_kwargs)
 end

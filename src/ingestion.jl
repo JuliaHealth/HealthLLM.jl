@@ -50,6 +50,8 @@ export SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
     default_search_provider, web_search,
     CURATED_SOURCES, fetch_url, html_to_text, fetch_curated,
+    Chunk, AbstractChunkStrategy, RecursiveChunk, HeaderChunk, RecordChunk, FixedSizeChunk,
+    chunk, chunk_document, chunk_provenance, default_strategy, load_funsql_examples,
     ingest, ingest_to_index
 
 # Included in dependency order: later files use the types/functions above them.
@@ -57,6 +59,7 @@ include("ingestion/types.jl")
 include("ingestion/curated.jl")
 include("ingestion/fetch.jl")
 include("ingestion/search.jl")
+include("ingestion/chunk.jl")
 include("ingestion/pipeline.jl")
 
 end
