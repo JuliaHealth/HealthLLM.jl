@@ -18,6 +18,7 @@ makedocs(;
         "Document Ingestion" => "ingestion.md",
         "Building Embeddings" => "embeddings.md",
         "Querying the RAG System" => "querying.md",
+        "Evaluation" => "evaluation.md",
     ],
 )
 

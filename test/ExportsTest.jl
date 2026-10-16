@@ -27,7 +27,9 @@ using Test
             :ingest, :ingest_to_index, :fetch_url,                         # Ingestion
             :Chunk, :chunk, :chunk_document, :chunk_provenance,            # Ingestion/chunk
             :RecordChunk, :HeaderChunk, :RecursiveChunk, :FixedSizeChunk,
-            :default_strategy, :load_funsql_examples)
+            :default_strategy, :load_funsql_examples, :load_grounding_docs,
+            :BenchmarkTask, :load_tasks, :split_tasks, :run_benchmark,      # Evaluation
+            :results_match, :compare_modes, :markdown_report)
             @test isdefined(HealthLLM, n)
             @test n in names(HealthLLM)
         end
