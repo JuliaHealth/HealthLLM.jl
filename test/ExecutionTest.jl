@@ -123,6 +123,15 @@ const _CATALOG = FunSQL.SQLCatalog(
         @test occursin("connection refused", boom.error)
     end
 
+    @testset "sandbox binds every FunSQL node constructor generations use" begin
+        # CrossJoin was missing, so any generated cross join failed as a build error.
+        res = sanity_check_funsql(
+            "From(:person) |> CrossJoin(:c => From(:condition_occurrence)) |> Select(Get.person_id)";
+            catalog=_CATALOG)
+        @test res.ok
+        @test occursin(r"(?i)cross join", res.sql)
+    end
+
     @testset "sanity_check_funsql on a FunSQLGeneration" begin
         gen = FunSQLGeneration("From(:person) |> Select(Get.person_id)", "raw")
         @test sanity_check_funsql(gen; catalog=_CATALOG).ok

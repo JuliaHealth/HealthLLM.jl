@@ -1,7 +1,7 @@
-# Build the committed benchmark task set from the raw FunSQL example dataset.
+# Build the committed benchmark task set from its source file.
 #
 #   julia --project=scripts/benchmark scripts/benchmark/curate_tasks.jl \
-#       FunSQLQueries/train.jsonl synthea_1M_3YR.duckdb data/benchmark/funsql_tasks.jsonl
+#       data/benchmark/funsql_duckdb_source.jsonl synthea_1M_3YR.duckdb data/benchmark/funsql_tasks.jsonl
 #
 # A task is kept only if its gold SQL runs on the OMOP DuckDB within the timeout
 # and returns at least one row. An empty gold result would be "matched" by any

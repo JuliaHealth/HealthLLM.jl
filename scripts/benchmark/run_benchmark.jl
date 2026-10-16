@@ -3,9 +3,10 @@
 #   julia --project=scripts/benchmark scripts/benchmark/run_benchmark.jl \
 #       --db synthea_1M_3YR.duckdb --model qwen2.5:7b
 #
-# Every task in data/benchmark/funsql_tasks.jsonl is answered by the same model
-# twice: once with no context, and once with chunks retrieved from the grounding
-# docs (data/grounding/). Each generated query is rendered against the real
+# Half the tasks in data/benchmark/funsql_tasks.jsonl (a fixed, tier-stratified
+# split) are answered by the same model twice: once with no context, and once with
+# chunks retrieved from the grounding docs (data/grounding/) and the other half's
+# verified FunSQL examples. Each generated query is rendered against the real
 # schema, executed, and its result compared with the gold SQL's. Results go to
 # benchmark_results/<timestamp>/ as results.json (every task) and report.md.
 #
@@ -19,7 +20,7 @@
 #   --tiers LIST          simple,compositional,schema_aware     [all]
 #   --limit N             evaluate only the first N tasks       [all]
 #   --test-fraction X     fraction of tasks evaluated. The rest become retrievable
-#                         examples; their verified FunSQL is indexed   [1.0]
+#                         examples; their verified FunSQL is indexed   [0.5]
 #   --timeout S           per-query execution timeout, seconds  [60]
 #   --out DIR             output directory                      [benchmark_results]
 
@@ -39,7 +40,7 @@ function parse_args(args)
         "tasks" => joinpath(ROOT, "data", "benchmark", "funsql_tasks.jsonl"),
         "model" => "qwen2.5:7b", "embedding" => "nomic-embed-text", "k" => "6",
         "modes" => "zero_shot,rag", "tiers" => join(String.(TIERS), ","), "limit" => "0",
-        "test-fraction" => "1.0", "timeout" => "60", "out" => joinpath(ROOT, "benchmark_results"))
+        "test-fraction" => "0.5", "timeout" => "60", "out" => joinpath(ROOT, "benchmark_results"))
     i = 1
     while i <= length(args)
         key = lstrip(args[i], '-')

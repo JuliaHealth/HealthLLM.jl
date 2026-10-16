@@ -50,33 +50,30 @@ under a timeout, which stops a runaway join over the full patient table.
 
 ## The task set
 
-`data/benchmark/funsql_tasks.jsonl` holds 65 tasks curated from the 200-row
-FunSQL example dataset (`FunSQLQueries/train.jsonl`) by
-`scripts/benchmark/curate_tasks.jl`. A task is kept only if its gold SQL runs on
-DuckDB and returns at least one row. An empty gold result would be matched by any
-query that also returns nothing.
+`data/benchmark/funsql_tasks.jsonl` holds 180 tasks. Each has a self-contained
+question, DuckDB gold SQL, and a FunSQL answer verified to return the gold SQL's
+result on the Synthea 1M database. A task is kept only if its gold SQL returns at
+least one row, because an empty result would be matched by any query that also
+returns nothing.
 
-| Dropped | Count | Why |
-|---------|------:|-----|
-| Gold SQL fails on DuckDB | 114 | About half call SQL Server functions DuckDB lacks (`GETDATE`, `DATEADD`, `DATEDIFF(DAY, …)`, `STDEV`, `DATEFROMPARTS`, `ISNULL`). 28 don't parse in DuckDB, and 9 have an invalid `GROUP BY` |
-| Gold SQL returns no rows | 20 | Concept codes that don't occur in the Synthea data |
-| Gold SQL times out (60 s) | 1 | A `drug_exposure` self-join over 1.1M patients and 98M drug exposures |
+The tasks are a repair of the 200-row FunSQL example dataset
+(`FunSQLQueries/train.jsonl`, adapted from the OHDSI QueryLibrary).
+`data/benchmark/README.md` describes how each record was rebuilt and why 20 were
+dropped. In short: the original SQL was mostly SQL Server dialect, many questions
+didn't match their SQL or left out the concept ids it used, and most input
+concepts never occur in Synthea. The editable source is
+`data/benchmark/funsql_duckdb_source.jsonl`. `scripts/benchmark/curate_tasks.jl`
+re-verifies it to produce the benchmark file, and
+`scripts/benchmark/verify_pairs.jl` checks individual SQL/FunSQL pairs while
+editing.
 
 Each task has a tier, assigned by [`classify_tier`](@ref) from its gold SQL:
 
 | Tier | Tasks | Needs |
 |------|------:|-------|
-| `simple` | 17 | one table: filter, group, aggregate, order |
-| `compositional` | 8 | joins, subqueries, CTEs, window or set operations |
-| `schema_aware` | 40 | OMOP vocabulary tables (`concept`, `concept_ancestor`) to resolve a clinical idea |
-
-Only 1 of the 65 dataset FunSQL answers reproduces its gold SQL's result. The
-rest have bare identifiers (`From(drug_era)`), lost newlines, or constructs
-FunSQL doesn't have. Curation keeps a task's FunSQL only when it is verified, so
-broken references are never retrieved as examples. The RAG mode in this release is
-therefore grounded on `data/grounding/` alone. Repairing the dataset's FunSQL
-(and porting its SQL Server queries to DuckDB) would grow both the task set and
-the example pool.
+| `simple` | 45 | one table: filter, group, aggregate, order |
+| `compositional` | 43 | joins, subqueries, CTEs, window or set operations |
+| `schema_aware` | 92 | OMOP vocabulary tables (`concept`, `concept_ancestor`, `concept_relationship`) |
 
 ## Scoring
 
@@ -103,8 +100,10 @@ counts with an exact McNemar test, so you can tell a RAG gain from noise.
 If a task's own reference answer is in the index, retrieving it measures lookup,
 not grounding. [`split_tasks`](@ref) holds tasks out with a deterministic,
 tier-stratified split. Only the *other* tasks' verified FunSQL is indexed, via
-[`examples_document`](@ref). The default `--test-fraction 1.0` evaluates every
-task and indexes no examples.
+[`examples_document`](@ref). The default `--test-fraction 0.5` evaluates half
+the tasks and indexes the other half's verified FunSQL as retrievable examples.
+`--test-fraction 1.0` evaluates every task and grounds the RAG mode on
+`data/grounding/` alone.
 
 ## Using the harness from Julia
 
