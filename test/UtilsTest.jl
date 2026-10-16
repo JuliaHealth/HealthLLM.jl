@@ -58,21 +58,81 @@ using HealthLLM.Utils: collect_files_with_extensions, write_combined_file
         s1 = HealthLLM.Utils.get_schema("Ollama")
         @test typeof(s1) == typeof(PromptingTools.OllamaSchema())
 
-        if isdefined(PromptingTools, :HuggingFaceSchema)
-            s2 = HealthLLM.Utils.get_schema(nothing, "hf:facebook/opt-350m")
-            @test typeof(s2) == typeof(PromptingTools.HuggingFaceSchema())
+        # explicit provider form
+        @test typeof(get_schema(:ollama)) == typeof(PromptingTools.OllamaSchema())
+        @test get_schema(:huggingface) isa HuggingFaceOpenAISchema
+        @test_throws ArgumentError get_schema(:nonsense)
+
+        # schema-name form recognises HuggingFace by name
+        @test get_schema("HuggingFace") isa HuggingFaceOpenAISchema
+        @test get_schema("huggingface") isa HuggingFaceOpenAISchema
+
+        # heuristic form: HF-looking model names route to the HF schema
+        for name in ("hf:facebook/opt-350m", "some-huggingface-model", "hf/x", "hf-x")
+            @test get_schema(nothing, name) isa HuggingFaceOpenAISchema
         end
+
+        @test typeof(get_schema(nothing, "llama3.2")) ==
+              typeof(PromptingTools.OllamaSchema())
     end
 
     @testset "register_models sets globals" begin
         HealthLLM.register_models("test-chat-model", "test-emb-model")
         @test PromptingTools.MODEL_CHAT == "test-chat-model"
         @test PromptingTools.MODEL_EMBEDDING == "test-emb-model"
+
+        # HuggingFace-style names register just as well
+        HealthLLM.register_models("hf:facebook/opt-350m",
+            "hf:sentence-transformers/all-mpnet-base-v2")
+        @test PromptingTools.MODEL_CHAT == "hf:facebook/opt-350m"
+        @test PromptingTools.MODEL_EMBEDDING == "hf:sentence-transformers/all-mpnet-base-v2"
     end
 
-    @testset "load_huggingface_model without HF" begin
-        res = HealthLLM.load_huggingface_model("some/fake-model")
+    @testset "load_huggingface_model reports failure without throwing" begin
+        # HuggingFaceHub is a real dependency now, so this reaches the hub (or
+        # fails to); either way an unknown repo must come back as not-downloaded
+        # rather than raising.
+        res = HealthLLM.load_huggingface_model("healthllm-jl/definitely-not-a-real-model")
         @test res isa HealthLLM.HuggingFaceLoadResult
         @test res.downloaded == false
+        @test res.path === nothing
+    end
+
+    @testset "require_main_module" begin
+        @test require_main_module(:Test, "unreachable") === Main.Test
+        err = try
+            require_main_module(:NotLoadedAnywhere, "install it first")
+            nothing
+        catch e
+            e
+        end
+        @test err isa ArgumentError
+        @test occursin("install it first", err.msg)
+    end
+
+    @testset "check_dims / check_k" begin
+        E = rand(Float32, 4, 3)
+        @test check_dims(E) == (4, 3)
+        @test check_dims(E, ["a", "b", "c"], 4) == (4, 3)
+        @test_throws DimensionMismatch check_dims(E, ["a", "b", "c"], 99)
+        @test_throws DimensionMismatch check_dims(E, ["only-one"], 4)
+
+        @test check_k(3) == 3
+        @test_throws ArgumentError check_k(0)
+        @test_throws ArgumentError check_k(-1)
+    end
+
+    @testset "render_provenance" begin
+        @test render_provenance(Dict{Symbol,Any}(:url => "http://cdm", :heading => "person")) ==
+              "http://cdm › person"
+        # source stands in for a missing url; group stands in for a missing heading
+        @test render_provenance(Dict{Symbol,Any}(:source => "FunSQL", :group => "joins")) ==
+              "FunSQL › joins"
+        # either half may be absent
+        @test render_provenance(Dict{Symbol,Any}(:url => "http://x")) == "http://x"
+        @test render_provenance(Dict{Symbol,Any}(:heading => "person")) == "person"
+        @test render_provenance(Dict{Symbol,Any}()) == ""
+        @test length(render_provenance(
+            Dict{Symbol,Any}(:url => repeat("u", 400), :heading => repeat("h", 400)))) == 512
     end
 end
