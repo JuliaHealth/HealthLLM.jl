@@ -9,6 +9,9 @@ using PromptingTools
 using RAGTools
 using LinearAlgebra
 using SparseArrays
+using HealthLLM
+using HealthLLM.Evaluation: ResultSet, results_match
+using HealthLLM.Execution: sanity_check_funsql, FunSQLGeneration, FunSQLCheck
 
 include("types.jl")
 include("validators/base.jl")
@@ -33,6 +36,7 @@ export ExecutionValidator
 export FunctionExecutor, QueryExecutor
 export MockLLM, MockHealthLLMSchema, create_mock_rag_index
 export load_golden_cases, save_golden_cases, create_test_corpus, create_test_duckdb
+export ResultSet, results_match, sanity_check_funsql
 export @test_valid
 
 """
