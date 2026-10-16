@@ -101,7 +101,7 @@ Pkg.test()
 Integration-style tests that depend on network or large datasets are opt-in:
 
 ```bash
-HEALTHLLM_RUN_INTEGRATION_TESTS=true julia --project=. -e 'using Pkg; Pkg.test()'
+RUN_HEAVY_TESTS=1 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
 ## Environment notes
