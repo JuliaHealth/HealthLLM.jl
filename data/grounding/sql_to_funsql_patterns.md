@@ -187,7 +187,7 @@ FunSQL:
 
 ```julia
 From(:concept) |>
-Where((Get.vocabulary_id .== "SNOMED") .& (Get.concept_code .== "44054006")) |>
+Where(Fun.and(Get.vocabulary_id .== "SNOMED", Get.concept_code .== "44054006")) |>
 Select(Get.concept_id, Get.concept_name)
 ```
 
@@ -341,5 +341,8 @@ Limit(10)
 4. SQL Server date functions. `DATEDIFF(DAY, a, b)` and `DATEADD` are not DuckDB.
    Use `Fun.date_diff("day", a, b)` and date arithmetic.
 5. Using `==` instead of `.==`. Comparisons inside a query must use the broadcast
-   forms `.==`, `.>`, `.&`, and so on.
-6. Single-quoted strings. Julia strings use double quotes: `"SNOMED"`.
+   forms `.==`, `.>`, `.<=`, and so on.
+6. Combining conditions with `.&` or `.|`. These render as the bitwise operators
+   `&` and `|`, which DuckDB rejects on booleans. Use `Fun.and(a, b)` and
+   `Fun.or(a, b)`.
+7. Single-quoted strings. Julia strings use double quotes: `"SNOMED"`.

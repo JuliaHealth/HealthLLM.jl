@@ -13,7 +13,9 @@ the OMOP CDM tables.
   `Order`, a bare symbol such as `:person_id` also works.
 - Name an output column with `:name => expression`, or with `expression |> As(:name)`.
 - Compare with broadcasting operators: `.==`, `.!=`, `.<`, `.>`, `.<=`, `.>=`.
-  Combine conditions with `.&` (AND) and `.|` (OR), or with `Fun.and` / `Fun.or`.
+  Combine conditions with `Fun.and(a, b)` and `Fun.or(a, b)`, and negate with
+  `Fun.not(a)`. Don't use `.&` or `.|`: they render as the bitwise operators `&`
+  and `|`, which DuckDB rejects on boolean values.
 - Call any SQL function with `Fun.function_name(args...)`, e.g. `Fun.lower(Get.concept_name)`.
 - Aggregates live under `Agg`: `Agg.count()`, `Agg.count_distinct(x)`,
   `Agg.sum(x)`, `Agg.avg(x)`, `Agg.min(x)`, `Agg.max(x)`. They are only valid
@@ -41,7 +43,7 @@ Several conditions:
 
 ```julia
 From(:person) |>
-Where((Get.year_of_birth .>= 1950) .& (Get.gender_concept_id .== 8507)) |>
+Where(Fun.and(Get.year_of_birth .>= 1950, Get.gender_concept_id .== 8507)) |>
 Select(Get.person_id)
 ```
 
@@ -152,6 +154,7 @@ Select(:n_patients => Agg.count_distinct(Get.person_id))
 ```
 
 `Fun.in` also takes a list of values: `Fun.in(Get.gender_concept_id, 8507, 8532)`.
+Use `Fun.not_in` for `NOT IN`.
 
 ## Common table expressions (WITH)
 
@@ -215,7 +218,8 @@ Select(Get.person_id,
 
 ```julia
 From(:visit_occurrence) |>
-Where(Fun.is_not_null(Get.care_site_id) .& Fun.between(Get.visit_start_date, Fun.cast("2020-01-01", "DATE"), Fun.cast("2020-12-31", "DATE"))) |>
+Where(Fun.and(Fun.is_not_null(Get.care_site_id),
+              Fun.between(Get.visit_start_date, Fun.cast("2020-01-01", "DATE"), Fun.cast("2020-12-31", "DATE")))) |>
 Select(Get.visit_occurrence_id, Get.care_site_id)
 ```
 

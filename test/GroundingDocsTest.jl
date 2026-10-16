@@ -2,12 +2,41 @@ using HealthLLM
 using HealthLLM.Ingestion: GROUNDING_DIR, load_grounding_docs, chunk_document, HeaderChunk, default_strategy
 using HealthLLM.Execution: sanity_check_funsql
 using FunSQL
+using DuckDB
 
 # The grounding docs are the model's only admissible source of FunSQL syntax and
 # OMOP column names (see FUNSQL_SYSTEM_PROMPT), so a wrong snippet in them is
 # worse than none: it teaches the model a construct that doesn't exist. These
 # tests render every FunSQL example against a catalog built from the schema doc
 # itself, which also keeps the examples and the schema consistent.
+
+# `## table` headings followed by "- `column` TYPE" bullets -> (table, [(column, type)]).
+function _schema_tables(path)
+    tables = Pair{String,Vector{Tuple{String,String}}}[]
+    for line in eachline(path)
+        if (m = match(r"^##\s+([a-z_]+)\s*$", line)) !== nothing
+            push!(tables, m[1] => Tuple{String,String}[])
+        elseif (m = match(r"^-\s+`([a-z_0-9]+)`\s+([A-Z]+)", line)) !== nothing && !isempty(tables)
+            push!(last(tables).second, (m[1], m[2]))
+        end
+    end
+    return filter(t -> !isempty(t.second), tables)
+end
+
+const _DUCKDB_TYPES = Dict("INTEGER" => "BIGINT", "NUMERIC" => "DOUBLE", "DATE" => "DATE",
+    "DATETIME" => "TIMESTAMP", "VARCHAR" => "VARCHAR")
+
+# An empty DuckDB database with the documented tables, so rendered SQL is also
+# bound and type-checked by a real engine. Rendering alone accepts queries
+# DuckDB rejects, e.g. `.&` renders as bitwise `&`, which fails on booleans.
+function _schema_duckdb(path)
+    conn = DBInterface.connect(DuckDB.DB())
+    for (table, cols) in _schema_tables(path)
+        defs = join(("\"$c\" $(_DUCKDB_TYPES[t])" for (c, t) in cols), ", ")
+        DBInterface.execute(conn, "CREATE TABLE \"$table\" ($defs)")
+    end
+    return conn
+end
 
 # `## table` headings followed by "- `column` TYPE" bullets -> FunSQL catalog.
 function _schema_catalog(path)
@@ -33,6 +62,7 @@ _julia_blocks(text) = [String(strip(m[1])) for m in eachmatch(r"```julia\r?\n(.*
 @testset "Grounding docs" begin
     schema_path = joinpath(GROUNDING_DIR, "omop_cdm_schema.md")
     catalog = _schema_catalog(schema_path)
+    conn = _schema_duckdb(schema_path)
 
     @testset "schema doc parses into a catalog" begin
         for t in (:person, :condition_occurrence, :condition_era, :drug_exposure,
@@ -43,13 +73,15 @@ _julia_blocks(text) = [String(strip(m[1])) for m in eachmatch(r"```julia\r?\n(.*
     end
 
     for file in ("funsql_reference.md", "sql_to_funsql_patterns.md")
-        @testset "every FunSQL example in $file renders" begin
+        @testset "every FunSQL example in $file renders and runs on DuckDB" begin
             blocks = _julia_blocks(read(joinpath(GROUNDING_DIR, file), String))
             @test length(blocks) >= 15
             for code in blocks
-                check = sanity_check_funsql(code; catalog=catalog)
-                check.ok || @info "Grounding example failed to render" file code check.error
+                check = sanity_check_funsql(code; catalog=catalog,
+                    executor=sql -> DBInterface.execute(conn, sql))
+                check.ok || @info "Grounding example failed" file code check.error
                 @test check.ok
+                @test check.executed
             end
         end
     end
@@ -59,6 +91,7 @@ _julia_blocks(text) = [String(strip(m[1])) for m in eachmatch(r"```julia\r?\n(.*
             for code in _julia_blocks(read(joinpath(GROUNDING_DIR, file), String))
                 @test !occursin(r"\b(Distinct|Offset|Union|Having)\(", code)
                 @test !occursin(r"DATEDIFF|DATEADD", code)
+                @test !occursin(r"\.[&|]", code)
             end
         end
     end
