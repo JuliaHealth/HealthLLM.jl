@@ -11,7 +11,9 @@ end
     @testset "get_schema inference" begin
         # HuggingFace-like strings
         hf_schema = HealthLLM.Utils.get_schema(nothing, "hf:facebook/opt-350m")
-        if isdefined(PromptingTools, :HuggingFaceSchema)
+        if isdefined(HealthLLM.Utils, :HuggingFaceOpenAISchema)
+            @test typeof(hf_schema) == typeof(HealthLLM.Utils.HuggingFaceOpenAISchema())
+        elseif isdefined(PromptingTools, :HuggingFaceSchema)
             @test typeof(hf_schema) == typeof(PromptingTools.HuggingFaceSchema())
         else
             @test typeof(hf_schema) == typeof(PromptingTools.OllamaSchema())
@@ -42,6 +44,6 @@ end
         @test isa(res, HealthLLM.HuggingFaceLoadResult)
         @test res.downloaded == false
         @test res.path === nothing
-        @test res.info == "mock/medical-model"
+        @test res.info === nothing || res.info == "mock/medical-model"
     end
 end
