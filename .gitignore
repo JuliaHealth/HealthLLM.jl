@@ -13,3 +13,5 @@ FunSQLQueries/
 benchmark_result_*
 nul
 synthea_1M_3YR.duckdb
+/scripts/benchmark/Manifest*.toml
+benchmark_results/

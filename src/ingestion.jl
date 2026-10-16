@@ -21,7 +21,7 @@ Pull documentation into a RAG index from two kinds of sources:
 | File                      | Responsibility                                   |
 |---------------------------|--------------------------------------------------|
 | `ingestion/types.jl`      | `SourceDocument`, `SearchResult` data types      |
-| `ingestion/curated.jl`    | `CURATED_SOURCES` registry                        |
+| `ingestion/curated.jl`    | `CURATED_SOURCES` registry, local grounding docs  |
 | `ingestion/fetch.jl`      | HTTP fetch + HTML→text (`fetch_url`, `html_to_text`, `fetch_curated`) |
 | `ingestion/search.jl`     | Search providers (`web_search`, `DuckDuckGoProvider`) |
 | `ingestion/pipeline.jl`   | Orchestration (`ingest`, `ingest_to_index`)      |
@@ -49,7 +49,7 @@ using ..Utils
 export SourceDocument, SearchResult,
     AbstractSearchProvider, DuckDuckGoProvider,
     default_search_provider, web_search,
-    CURATED_SOURCES, fetch_url, html_to_text, fetch_curated,
+    CURATED_SOURCES, GROUNDING_DIR, load_grounding_docs, fetch_url, html_to_text, fetch_curated,
     Chunk, AbstractChunkStrategy, RecursiveChunk, HeaderChunk, RecordChunk, FixedSizeChunk,
     chunk, chunk_document, chunk_provenance, default_strategy, load_funsql_examples,
     ingest, ingest_to_index

@@ -114,6 +114,29 @@ end
 Each [`SourceDocument`](@ref) carries its `source`, `url`, `title`, and cleaned
 `content`.
 
+#### Local grounding docs
+
+HealthLLM also ships three grounding documents in `data/grounding/` that need no
+network:
+
+| File | Contents |
+|------|----------|
+| `omop_cdm_schema.md` | The columns of the common OMOP CDM tables, one heading per table |
+| `funsql_reference.md` | FunSQL.jl constructs, each with a complete example query |
+| `sql_to_funsql_patterns.md` | SQL queries paired with their FunSQL equivalent |
+
+[`load_grounding_docs`](@ref) returns them as [`SourceDocument`](@ref)s. They
+chunk one table or pattern per chunk. The test suite renders every FunSQL
+example in them against the schema document, so the model is never grounded on a
+construct FunSQL lacks or a column the schema doesn't have.
+
+```julia
+docs = vcat(load_grounding_docs(), fetch_curated(["OHDSI"]))
+```
+
+This is the fixed, reproducible corpus the [Evaluation](evaluation.md) benchmark
+retrieves from.
+
 ### 4. Web search
 
 [`web_search`](@ref) runs a query against a search backend and returns

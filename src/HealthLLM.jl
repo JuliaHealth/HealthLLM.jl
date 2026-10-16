@@ -13,6 +13,7 @@ include("prompt.jl")
 include("execution.jl")
 include("query.jl")
 include("ingestion.jl")
+include("evaluation.jl")
 
 """
     HealthLLM.PUBLIC_MODULES
@@ -24,7 +25,7 @@ Adding a name to that list is all it takes to publish it; there is no second
 mirrored list here to fall out of sync.
 """
 const PUBLIC_MODULES = (HuggingFace, Utils, Database, Embeddings, Storage, Prompt,
-    Execution, Query, Ingestion)
+    Execution, Query, Ingestion, Evaluation)
 
 # Explicit `import` rather than `using`, because an explicit import takes
 # precedence over names a `using` brings in: `Storage.retrieve` has to win over

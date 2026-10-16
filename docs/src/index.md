@@ -17,6 +17,7 @@ The package centers on five areas:
 - generating retrieval-backed answers for query construction
 - building and validating embeddings across Ollama and HuggingFace (see [Building Embeddings](embeddings.md))
 - storing embeddings in a local file, PostgreSQL/`pgvector`, or FAISS
+- benchmarking zero-shot against RAG FunSQL generation by executing the queries (see [Evaluation](evaluation.md))
 
 ## Package surface
 
@@ -33,5 +34,5 @@ index = build_index_rag(RAGTools.SimpleIndexer(), files)
 More detailed setup, testing commands, and the end-to-end walkthrough are in [Getting Started](getting-started.md).
 
 ```@autodocs
-Modules = [HealthLLM, HealthLLM.HuggingFace, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Prompt, HealthLLM.Execution, HealthLLM.Query, HealthLLM.Ingestion, HealthLLM.Embeddings, HealthLLM.Storage]
+Modules = [HealthLLM, HealthLLM.HuggingFace, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Prompt, HealthLLM.Execution, HealthLLM.Query, HealthLLM.Ingestion, HealthLLM.Embeddings, HealthLLM.Storage, HealthLLM.Evaluation]
 ```
