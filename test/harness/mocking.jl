@@ -9,6 +9,7 @@ using LinearAlgebra
     MockLLM
 
 A deterministic mock LLM for testing. Maps prompt strings or regular expressions to canned responses.
+Compatible with `HealthLLM.Execution.generate_funsql` and `HealthLLM.Evaluation.run_task` as an injectable generator.
 
 # Fields
 - `responses::Dict{Any, String}`: Dict of (string/regex => response).
@@ -34,7 +35,7 @@ mutable struct MockLLM
     end
 end
 
-function (m::MockLLM)(prompt::AbstractString)
+function (m::MockLLM)(prompt::AbstractString; kwargs...)
     push!(m.history, String(prompt))
     for (pat, resp) in m.responses
         if pat isa Regex
@@ -48,6 +49,21 @@ function (m::MockLLM)(prompt::AbstractString)
         end
     end
     return m.default_response
+end
+
+function (m::MockLLM)(prompt; kwargs...)
+    p_str = if prompt isa AbstractString
+        String(prompt)
+    elseif hasproperty(prompt, :prompt)
+        String(getproperty(prompt, :prompt))
+    elseif hasproperty(prompt, :user)
+        String(getproperty(prompt, :user))
+    elseif prompt isa AbstractVector
+        join([get(item, :content, string(item)) for item in prompt], "\n")
+    else
+        string(prompt)
+    end
+    return m(p_str; kwargs...)
 end
 
 """
@@ -73,11 +89,15 @@ function PromptingTools.aigenerate(
         String(prompt)
     elseif prompt isa AbstractVector
         join([get(m, :content, string(m)) for m in prompt], "\n")
+    elseif hasproperty(prompt, :prompt)
+        String(getproperty(prompt, :prompt))
+    elseif hasproperty(prompt, :user)
+        String(getproperty(prompt, :user))
     else
         string(prompt)
     end
 
-    response_text = schema.mock(prompt_str)
+    response_text = schema.mock(prompt_str; model=model, kwargs...)
 
     # Return an AIMessage compatible with PromptingTools
     return PromptingTools.AIMessage(

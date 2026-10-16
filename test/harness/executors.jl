@@ -1,5 +1,10 @@
 # Test Executors
 
+using DataFrames
+using DuckDB
+using FunSQL
+using HealthLLM.Execution: sanity_check_funsql, FunSQLGeneration
+
 """
     FunctionExecutor(func::Function)
 
@@ -10,15 +15,17 @@ struct FunctionExecutor <: AbstractExecutor
 end
 
 execute(e::FunctionExecutor, input) = e.func(input)
+(e::FunctionExecutor)(input) = execute(e, input)
 
 """
     QueryExecutor(db_conn; dialect=FunSQL.SQLDialect(:duckdb))
 
 Executes a SQL query string or FunSQL node on `db_conn` and returns a `DataFrame`.
+Reuses `HealthLLM.Execution.sanity_check_funsql` to validate and render FunSQL expressions.
 """
 struct QueryExecutor <: AbstractExecutor
     db_conn::Any
-    dialect::FunSQL.SQLDialect
+    dialect::Any
 
     function QueryExecutor(db_conn; dialect=FunSQL.SQLDialect(:duckdb))
         new(db_conn, dialect)
@@ -26,22 +33,32 @@ struct QueryExecutor <: AbstractExecutor
 end
 
 function execute(e::QueryExecutor, input)
+    dialect_sym = e.dialect isa FunSQL.SQLDialect ? :duckdb : e.dialect
     sql_str = if input isa AbstractString
         s = strip(String(input))
-        if occursin("From(", s) || occursin("Select(", s) || occursin("FunSQL.", s)
-            parsed = eval(Meta.parse(s))
-            FunSQL.render(parsed, dialect=e.dialect)
+        if occursin("From(", s) || occursin("Select(", s) || occursin("FunSQL.", s) || occursin("|>", s)
+            check = sanity_check_funsql(s; dialect=dialect_sym)
+            check.ok ? check.sql : error("Failed to build FunSQL query: $(check.error)")
         else
             s
         end
+    elseif input isa FunSQLGeneration
+        check = sanity_check_funsql(input; dialect=dialect_sym)
+        check.ok ? check.sql : error("Failed to build FunSQL query: $(check.error)")
     elseif input isa FunSQL.SQLNode || input isa FunSQL.AbstractSQLNode
-        FunSQL.render(input, dialect=e.dialect)
+        if e.dialect isa FunSQL.SQLDialect
+            string(FunSQL.render(input; dialect=e.dialect))
+        else
+            string(FunSQL.render(input; dialect=dialect_sym))
+        end
     else
-        String(input)
+        string(input)
     end
     res = DuckDB.execute(e.db_conn, sql_str)
     return DataFrame(res)
 end
+
+(e::QueryExecutor)(input) = execute(e, input)
 
 """
     run_test_case(tc::TestCase)::TestResult
