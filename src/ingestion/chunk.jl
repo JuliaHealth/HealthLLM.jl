@@ -235,7 +235,8 @@ chunk_provenance(c::Chunk) = render_provenance(c.metadata)
 """
     load_funsql_examples(path; source="FunSQL-examples") -> Vector{SourceDocument}
 
-Load a local JSON Lines file of FunSQL examples (see `FunSQLQueries/train.jsonl`)
+Load a local JSON Lines file of FunSQL examples (e.g. `data/benchmark/funsql_tasks.jsonl`,
+whose FunSQL is verified on DuckDB)
 into a single [`SourceDocument`](@ref) whose `content` is the raw JSONL. Routed
 through [`RecordChunk`](@ref) at index time, it yields one chunk per example.
 The file path is recorded as provenance.

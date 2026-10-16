@@ -57,7 +57,8 @@ reproducible grounding source for benchmarks.
 # Example
 
 ```julia
-docs = vcat(load_grounding_docs(), load_funsql_examples("FunSQLQueries/train.jsonl"))
+examples = joinpath(pkgdir(HealthLLM), "data", "benchmark", "funsql_tasks.jsonl")
+docs = vcat(load_grounding_docs(), load_funsql_examples(examples))
 index = ingest_to_index(; docs=docs, embedder_kwargs=(model="nomic-embed-text",))
 ```
 """

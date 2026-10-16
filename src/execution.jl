@@ -187,7 +187,7 @@ _funsql_module() = require_main_module(:FunSQL,
 const _FUNSQL_NODE_NAMES = (
     :From, :Select, :Where, :Join, :LeftJoin, :Group, :Order, :Limit, :Get, :Agg,
     :Fun, :As, :Define, :Bind, :Partition, :Append, :With, :Iterate, :Lit, :Var,
-    :Sort, :Asc, :Desc, :Over, :Highlight,
+    :Sort, :Asc, :Desc, :Over, :Highlight, :CrossJoin,
 )
 const _EVAL_MOD = Ref{Module}()
 
