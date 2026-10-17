@@ -3,7 +3,7 @@
 using DataFrames
 using DuckDB
 using FunSQL
-using HealthLLM.Execution: sanity_check_funsql, FunSQLGeneration
+using HealthLLM.Execution: sanity_check_funsql, extract_funsql, FunSQLGeneration
 
 """
     FunctionExecutor(func::Function)
@@ -33,24 +33,19 @@ struct QueryExecutor <: AbstractExecutor
 end
 
 function execute(e::QueryExecutor, input)
-    dialect_sym = e.dialect isa FunSQL.SQLDialect ? :duckdb : e.dialect
     sql_str = if input isa AbstractString
-        s = strip(String(input))
+        s = extract_funsql(String(input))
         if occursin("From(", s) || occursin("Select(", s) || occursin("FunSQL.", s) || occursin("|>", s)
-            check = sanity_check_funsql(s; dialect=dialect_sym)
+            check = sanity_check_funsql(s; dialect=e.dialect)
             check.ok ? check.sql : error("Failed to build FunSQL query: $(check.error)")
         else
             s
         end
     elseif input isa FunSQLGeneration
-        check = sanity_check_funsql(input; dialect=dialect_sym)
+        check = sanity_check_funsql(input; dialect=e.dialect)
         check.ok ? check.sql : error("Failed to build FunSQL query: $(check.error)")
     elseif input isa FunSQL.SQLNode || input isa FunSQL.AbstractSQLNode
-        if e.dialect isa FunSQL.SQLDialect
-            string(FunSQL.render(input; dialect=e.dialect))
-        else
-            string(FunSQL.render(input; dialect=dialect_sym))
-        end
+        string(FunSQL.render(input; dialect=e.dialect))
     else
         string(input)
     end

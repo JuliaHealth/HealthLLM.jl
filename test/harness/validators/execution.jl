@@ -5,7 +5,7 @@ using DuckDB
 using FunSQL
 using HealthLLM
 using HealthLLM.Evaluation: ResultSet, results_match
-using HealthLLM.Execution: sanity_check_funsql, FunSQLGeneration, FunSQLCheck
+using HealthLLM.Execution: sanity_check_funsql, extract_funsql, FunSQLGeneration, FunSQLCheck
 
 """
     ExecutionValidator(db_conn; catalog=nothing, dialect=:duckdb, check_schema::Bool=true, ordered::Bool=false, atol::Real=1e-6, rtol::Real=1e-4)
@@ -72,13 +72,11 @@ function _execute_query(conn, sql_str::AbstractString)
 end
 
 function validate(v::ExecutionValidator, actual, expected=nothing)::ValidationResult
-    dialect_sym = v.dialect isa FunSQL.SQLDialect ? :duckdb : v.dialect
-
     # 1. Resolve SQL string from actual (string, FunSQLGeneration, or FunSQL node)
     sql_to_run = ""
     try
         if actual isa FunSQLGeneration
-            check = sanity_check_funsql(actual; catalog=v.catalog, dialect=dialect_sym)
+            check = sanity_check_funsql(actual; catalog=v.catalog, dialect=v.dialect)
             if !check.ok
                 return ValidationResult(
                     false,
@@ -89,19 +87,9 @@ function validate(v::ExecutionValidator, actual, expected=nothing)::ValidationRe
             end
             sql_to_run = check.sql
         elseif actual isa AbstractString
-            s = strip(String(actual))
-            # Remove markdown sql/julia codeblocks if present
-            if startswith(s, "```sql") && endswith(s, "```")
-                s = strip(s[7:end-3])
-            elseif startswith(s, "```julia") && endswith(s, "```")
-                s = strip(s[9:end-3])
-            elseif startswith(s, "```") && endswith(s, "```")
-                s = strip(s[4:end-3])
-            end
-
-            # Check if it's FunSQL Julia code or raw SQL
+            s = extract_funsql(String(actual))
             if occursin("From(", s) || occursin("Select(", s) || occursin("FunSQL.", s) || occursin("|>", s)
-                check = sanity_check_funsql(s; catalog=v.catalog, dialect=dialect_sym)
+                check = sanity_check_funsql(s; catalog=v.catalog, dialect=v.dialect)
                 if !check.ok
                     return ValidationResult(
                         false,
@@ -117,10 +105,8 @@ function validate(v::ExecutionValidator, actual, expected=nothing)::ValidationRe
         elseif actual isa FunSQL.SQLNode || actual isa FunSQL.AbstractSQLNode
             if v.catalog !== nothing
                 sql_to_run = string(FunSQL.render(v.catalog, actual))
-            elseif v.dialect isa FunSQL.SQLDialect
-                sql_to_run = string(FunSQL.render(actual; dialect=v.dialect))
             else
-                sql_to_run = string(FunSQL.render(actual; dialect=dialect_sym))
+                sql_to_run = string(FunSQL.render(actual; dialect=v.dialect))
             end
         else
             return ValidationResult(
