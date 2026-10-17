@@ -31,7 +31,9 @@ files = collect_files_with_extensions("data", [".md", ".jl"])
 index = build_index_rag(RAGTools.SimpleIndexer(), files)
 ```
 
-More detailed setup, testing commands, and the end-to-end walkthrough are in [Getting Started](getting-started.md).
+More detailed setup and testing commands are in [Getting Started](getting-started.md).
+[End-to-End Example](end-to-end.md) runs the whole pipeline on a real OMOP database,
+and [Design and Limitations](design.md) explains how it is built and what it can't do yet.
 
 ```@autodocs
 Modules = [HealthLLM, HealthLLM.HuggingFace, HealthLLM.Utils, HealthLLM.Database, HealthLLM.Prompt, HealthLLM.Execution, HealthLLM.Query, HealthLLM.Ingestion, HealthLLM.Embeddings, HealthLLM.Storage, HealthLLM.Evaluation]

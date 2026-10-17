@@ -10,10 +10,14 @@
 
 ## What the project contains
 
-- Corpus preparation utilities for collecting files and writing combined sources.
-- RAG pipeline helpers built around `RAGTools` and `PromptingTools`.
-- Query-generation helpers for retrieval-backed, FunSQL-oriented workflows.
-- PostgreSQL embedding storage utilities targeting `pgvector`.
+- Ingestion of curated docs and web-search results, with content-aware chunking that keeps records, schema tables and code blocks whole.
+- Embeddings through Ollama or HuggingFace, stored locally, in PostgreSQL/`pgvector`, or in FAISS.
+- Grounded prompt construction and natural-language → FunSQL generation, with every generated query parsed, built and rendered against the database schema before it runs.
+- A benchmark of 180 OMOP tasks that scores zero-shot against RAG generation by executing the queries.
+
+## Try it
+
+`scripts/end_to_end.jl` takes one question through the whole pipeline (retrieval, prompt, FunSQL, schema check, execution) on the Synthea OMOP database. See the [End-to-End Example](https://juliahealth.github.io/HealthLLM.jl/dev/end-to-end/) for setup.
 
 Detailed setup, usage, and testing instructions live in the hosted docs:
 https://juliahealth.github.io/HealthLLM.jl/dev/
@@ -21,10 +25,11 @@ https://juliahealth.github.io/HealthLLM.jl/dev/
 ## Repository layout
 
 - `src/`: package source code.
+- `data/grounding/`: the OMOP schema, FunSQL reference and SQL → FunSQL patterns the model is grounded on.
+- `data/benchmark/`: the FunSQL benchmark tasks and how they were built.
+- `scripts/`: the end-to-end walkthrough and the benchmark scripts (`scripts/benchmark/`).
 - `docs/`: Documenter site and docs-specific environment.
 - `test/`: test suite and test-specific environment.
-- `FunSQLQueries/`: query-related assets used by the project.
-- `.env.example`: example environment variable template.
 - `CITATION.bib`: citation metadata.
 
 ## Documentation

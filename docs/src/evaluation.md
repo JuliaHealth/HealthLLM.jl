@@ -23,7 +23,8 @@ used. The two runs are then compared task by task.
 You need:
 
 - an OMOP CDM DuckDB file. The benchmark was built on `synthea_1M_3YR.duckdb`, a
-  Synthea ETL with its tables in schema `dbt_synthea_dev`;
+  Synthea ETL with its tables in schema `dbt_synthea_dev`
+  ([download instructions](end-to-end.md#Setup));
 - [Ollama](https://ollama.com) serving a chat model and `nomic-embed-text`.
 
 ```bash

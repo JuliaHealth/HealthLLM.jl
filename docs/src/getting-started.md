@@ -104,8 +104,14 @@ Integration-style tests that depend on network or large datasets are opt-in:
 RUN_HEAVY_TESTS=1 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
+## Next steps
+
+[End-to-End Example](end-to-end.md) takes one question from natural language to
+a result table: retrieval over the grounding docs, a grounded prompt, FunSQL
+generation, a schema check, and execution on an OMOP database.
+
 ## Environment notes
 
 - Keep secrets out of git-tracked files.
-- Use `.env.example` as a local template.
-- Configure provider keys in your environment before running model-backed workflows.
+- Configure provider keys in your environment before running model-backed
+  workflows, e.g. `HF_TOKEN` for HuggingFace models.
