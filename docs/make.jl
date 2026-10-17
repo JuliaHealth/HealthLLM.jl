@@ -19,6 +19,8 @@ makedocs(;
         "Building Embeddings" => "embeddings.md",
         "Querying the RAG System" => "querying.md",
         "Evaluation" => "evaluation.md",
+        "End-to-End Example" => "end-to-end.md",
+        "Design and Limitations" => "design.md",
     ],
 )
 

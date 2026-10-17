@@ -23,7 +23,9 @@ contains staging views that point at schemas it does not ship.
 generated FunSQL against it rejects any table or column the database lacks.
 """
 function open_omop_duckdb(path::AbstractString; source_schema::AbstractString="dbt_synthea_dev")
-    isfile(path) || error("OMOP DuckDB file not found: $path")
+    isfile(path) || error("OMOP DuckDB file not found: $path. The Synthea database is at " *
+                          "https://huggingface.co/datasets/JuliaHealthOrg/JuliaHealthDatasets " *
+                          "(synthea_1M_3YR.duckdb).")
     db = DuckDB.DB()
     conn = DBInterface.connect(db)
     # An in-memory database has nowhere to spill, so large joins and sorts over
