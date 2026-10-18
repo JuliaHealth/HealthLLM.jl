@@ -19,43 +19,6 @@ function load_golden_cases(filepath::AbstractString)::Vector{Dict{String,Any}}
 end
 
 """
-    save_golden_cases(filepath::AbstractString, cases)::Nothing
-
-Saves golden reference cases to a JSON file formatted with 2-space indentation.
-"""
-function save_golden_cases(filepath::AbstractString, cases)::Nothing
-    open(filepath, "w") do io
-        JSON3.pretty(io, cases)
-    end
-    return nothing
-end
-
-"""
-    create_test_corpus(base_dir::AbstractString)::Vector{String}
-
-Populates `base_dir` with a hierarchy of synthetic medical text and markdown files
-for testing corpus collection, concatenation, and indexing. Returns list of created file paths.
-"""
-function create_test_corpus(base_dir::AbstractString)::Vector{String}
-    mkpath(base_dir)
-    mkpath(joinpath(base_dir, "cardiology"))
-    mkpath(joinpath(base_dir, "endocrinology"))
-    mkpath(joinpath(base_dir, "ignored_data"))
-
-    f1 = joinpath(base_dir, "cardiology", "hypertension_notes.txt")
-    f2 = joinpath(base_dir, "cardiology", "cad_guidelines.md")
-    f3 = joinpath(base_dir, "endocrinology", "diabetes_summary.txt")
-    f4 = joinpath(base_dir, "ignored_data", "temp_artifact.csv")
-
-    write(f1, "Patient presenting with stage 2 hypertension. Blood pressure 150/95 mmHg.\nPrescribed lisinopril 10mg daily.")
-    write(f2, "# Coronary Artery Disease\nGuidelines for lipid management in CAD patients.\nTarget LDL < 70 mg/dL.")
-    write(f3, "Type 2 Diabetes Mellitus overview.\nKey markers: HbA1c > 6.5%.\nFirst-line therapy is metformin.")
-    write(f4, "id,value\n1,100\n2,200") # Non-text/csv file to verify extension filtering
-
-    return [f1, f2, f3]
-end
-
-"""
     create_test_duckdb()::DuckDB.DB
 
 Creates an in-memory DuckDB database preloaded with synthetic clinical tables

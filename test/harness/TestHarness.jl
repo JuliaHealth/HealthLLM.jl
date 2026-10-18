@@ -18,20 +18,19 @@ include("validators/structured.jl")
 include("validators/execution.jl")
 include("executors.jl")
 include("assertions.jl")
-include("runner.jl")
 include("fixtures.jl")
 
 # Exports
 export AbstractValidator, AbstractExecutor
 export ValidationResult, TestCase, TestResult
-export validate, execute, run_test_case, run_test_suite
+export validate, execute, run_test_case
 export ExactValidator
 export NormalizedTextValidator, normalize_text
 export ContainsValidator, RequiredContentValidator
 export JSONStructureValidator
 export ExecutionValidator
 export FunctionExecutor, QueryExecutor
-export load_golden_cases, save_golden_cases, create_test_corpus, create_test_duckdb
+export load_golden_cases, create_test_duckdb
 export ResultSet, results_match, sanity_check_funsql, extract_funsql
 export @test_valid
 

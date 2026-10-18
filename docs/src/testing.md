@@ -3,6 +3,7 @@
 `HealthLLM.jl` provides a modular testing harness (`TestHarness`) located under `test/harness/` that cleanly separates **test case definition**, **execution**, and **validation**.
 
 Because `HealthLLM.jl` combines deterministic software components (file parsers, database converters) with nondeterministic components (LLM prompts, RAG retrieval, query generation), different validation strategies are required for different outputs.
+
 ---
 
 ## 1. Core Architecture
@@ -73,14 +74,21 @@ HEALTHLLM_TEST_CATEGORY=golden julia --project=. -e 'using Pkg; Pkg.test()'
 
 ## 3. Available Validators
 
-The framework includes standard validators that can be evaluated directly via `validate(v, actual, expected)` or inside standard `@test`:
+The framework includes standard validators that can be evaluated directly via `validate(v, actual, expected)` or inside standard `@test`.
+
+`TestHarness` is a module under `test/`, not a package. `test/runtests.jl` includes it, so test files only need `using .TestHarness`. To use it elsewhere, for example in a REPL started in the test environment (`julia --project=test`) from the repository root, include it first:
+
+```julia
+include("test/harness/TestHarness.jl")
+using .TestHarness
+```
 
 ### `ExactValidator`
 For deterministic functions where exact equality (or numeric approximation) is expected:
 
 ```julia
 using Test
-using TestHarness
+using .TestHarness
 
 v = ExactValidator()
 res = validate(v, 10 + 20, 30)
@@ -96,7 +104,7 @@ For textual outputs that may differ in minor formatting (casing, surrounding whi
 
 ```julia
 using Test
-using TestHarness
+using .TestHarness
 
 v = NormalizedTextValidator(lowercase=true, trim=true, collapse_whitespace=true)
 res = validate(v, "  Hypertension is high blood pressure. \n", "hypertension is high blood pressure.")
@@ -108,7 +116,7 @@ For generated clinical text where specific concepts or phrases must appear (and 
 
 ```julia
 using Test
-using TestHarness
+using .TestHarness
 
 v = RequiredContentValidator(
     required=["elevated blood pressure", "systolic", "diastolic"],
@@ -126,7 +134,7 @@ For structured extractions, validating JSON schema, types, allowed value ranges,
 
 ```julia
 using Test
-using TestHarness
+using .TestHarness
 
 jv = JSONStructureValidator(
     required_keys=["patient_id", "condition", "confidence"],
@@ -146,7 +154,7 @@ For generated SQL or FunSQL queries, executing them against a database connectio
 ```julia
 using Test
 using DataFrames
-using TestHarness
+using .TestHarness
 
 db = create_test_duckdb()
 ev = ExecutionValidator(db)
@@ -165,7 +173,7 @@ res = validate(ev, generated_sql, expected_df)
 using Test
 using DataFrames
 using FunSQL
-using TestHarness
+using .TestHarness
 
 db = create_test_duckdb()
 catalog = FunSQL.SQLCatalog(
@@ -228,14 +236,13 @@ Validation fixtures represent version-controlled pairs of known inputs and expec
 test/fixtures/
 ├── golden_query_cases.json   # SQL test queries & expected patient/observation IDs
 ├── golden_text_cases.json    # Clinical text responses & required concepts
-├── structured_cases.json     # Structured JSON extraction fixtures
-└── sample_corpus/            # Synthetic clinical notes (.txt, .md)
+└── structured_cases.json     # Structured JSON extraction fixtures
 ```
 
 ### Loading Fixtures in Tests
 ```julia
 using Test
-using TestHarness
+using .TestHarness
 
 cases = load_golden_cases("test/fixtures/golden_text_cases.json")
 for case in cases
