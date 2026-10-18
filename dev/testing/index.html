@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Testing Guide · HealthLLM.jl</title><meta name="title" content="Testing Guide · HealthLLM.jl"/><meta property="og:title" content="Testing Guide · HealthLLM.jl"/><meta property="twitter:title" content="Testing Guide · HealthLLM.jl"/><meta name="description" content="Documentation for HealthLLM.jl."/><meta property="og:description" content="Documentation for HealthLLM.jl."/><meta property="twitter:description" content="Documentation for HealthLLM.jl."/><meta property="og:url" content="https://JuliaHealth.github.io/HealthLLM.jl/testing/"/><meta property="twitter:url" content="https://JuliaHealth.github.io/HealthLLM.jl/testing/"/><link rel="canonical" href="https://JuliaHealth.github.io/HealthLLM.jl/testing/"/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.63.2/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">HealthLLM.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><a class="tocitem" href="../getting-started/">Getting Started</a></li><li><a class="tocitem" href="../ingestion/">Document Ingestion</a></li><li><a class="tocitem" href="../embeddings/">Building Embeddings</a></li><li><a class="tocitem" href="../querying/">Querying the RAG System</a></li><li><a class="tocitem" href="../evaluation/">Evaluation</a></li><li><a class="tocitem" href="../end-to-end/">End-to-End Example</a></li><li><a class="tocitem" href="../design/">Design and Limitations</a></li><li class="is-active"><a class="tocitem" href>Testing Guide</a><ul class="internal"><li><a class="tocitem" href="#1.-Core-Architecture"><span>1. Core Architecture</span></a></li><li><a class="tocitem" href="#2.-Running-Tests"><span>2. Running Tests</span></a></li><li><a class="tocitem" href="#3.-Available-Validators"><span>3. Available Validators</span></a></li><li><a class="tocitem" href="#4.-Testing-with-Injected-Generators-and-Executors"><span>4. Testing with Injected Generators and Executors</span></a></li><li><a class="tocitem" href="#5.-Working-with-Golden-References-and-Validation-Fixtures"><span>5. Working with Golden References &amp; Validation Fixtures</span></a></li><li><a class="tocitem" href="#6.-Security-and-Synthetic-Data-Guidelines"><span>6. Security and Synthetic Data Guidelines</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Testing Guide</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Testing Guide</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/JuliaHealth/HealthLLM.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/JuliaHealth/HealthLLM.jl/blob/main/docs/src/testing.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Modular-Testing-Harness-and-Contributor-Guide"><a class="docs-heading-anchor" href="#Modular-Testing-Harness-and-Contributor-Guide">Modular Testing Harness &amp; Contributor Guide</a><a id="Modular-Testing-Harness-and-Contributor-Guide-1"></a><a class="docs-heading-anchor-permalink" href="#Modular-Testing-Harness-and-Contributor-Guide" title="Permalink"></a></h1><p><code>HealthLLM.jl</code> provides a modular testing harness (<code>TestHarness</code>) located under <code>test/harness/</code> that cleanly separates <strong>test case definition</strong>, <strong>execution</strong>, and <strong>validation</strong>.</p><p>Because <code>HealthLLM.jl</code> combines deterministic software components (file parsers, database converters) with nondeterministic components (LLM prompts, RAG retrieval, query generation), different validation strategies are required for different outputs.</p><hr/><h2 id="1.-Core-Architecture"><a class="docs-heading-anchor" href="#1.-Core-Architecture">1. Core Architecture</a><a id="1.-Core-Architecture-1"></a><a class="docs-heading-anchor-permalink" href="#1.-Core-Architecture" title="Permalink"></a></h2><pre><code class="nohighlight hljs">TestCase(name, input, expected, validator, [executor], [metadata])
+                           │
+                           ▼
+                    Test Executor
+           ┌───────────────┴───────────────┐
+           ▼                               ▼
+       Function                       FunSQL / SQL
+       Execution                       Execution
+           │                               │
+           └───────────────┬───────────────┘
+                           ▼
+                        Output
+                           │
+                           ▼
+                       Validator
+   ┌───────────────┬───────┴───────┬───────────────┬───────────────┐
+   ▼               ▼               ▼               ▼               ▼
+ Exact        Normalized       Required          JSON          Execution
+ Match           Text           Content        Structure       Validation
+   │               │               │               │               │
+   └───────────────┴───────┬───────┴───────────────┴───────────────┘
+                           ▼
+                    ValidationResult
+                  (passed, message, details)</code></pre><hr/><h2 id="2.-Running-Tests"><a class="docs-heading-anchor" href="#2.-Running-Tests">2. Running Tests</a><a id="2.-Running-Tests-1"></a><a class="docs-heading-anchor-permalink" href="#2.-Running-Tests" title="Permalink"></a></h2><h3 id="Standard-Test-Run"><a class="docs-heading-anchor" href="#Standard-Test-Run">Standard Test Run</a><a id="Standard-Test-Run-1"></a><a class="docs-heading-anchor-permalink" href="#Standard-Test-Run" title="Permalink"></a></h3><p>Run the full test suite via Julia&#39;s package manager:</p><pre><code class="language-julia hljs">using Pkg
+Pkg.test(&quot;HealthLLM&quot;)</code></pre><p>Or from the command line:</p><pre><code class="language-bash hljs">julia --project=. -e &#39;using Pkg; Pkg.test()&#39;</code></pre><h3 id="Running-Specific-Test-Categories"><a class="docs-heading-anchor" href="#Running-Specific-Test-Categories">Running Specific Test Categories</a><a id="Running-Specific-Test-Categories-1"></a><a class="docs-heading-anchor-permalink" href="#Running-Specific-Test-Categories" title="Permalink"></a></h3><p>You can run a specific test suite using the <code>HEALTHLLM_TEST_CATEGORY</code> environment variable:</p><pre><code class="language-bash hljs"># Run core upstream test suites
+HEALTHLLM_TEST_CATEGORY=core julia --project=. -e &#39;using Pkg; Pkg.test()&#39;
+
+# Run deterministic harness self-tests
+HEALTHLLM_TEST_CATEGORY=unit julia --project=. -e &#39;using Pkg; Pkg.test()&#39;
+
+# Run SQL / FunSQL execution tests
+HEALTHLLM_TEST_CATEGORY=execution julia --project=. -e &#39;using Pkg; Pkg.test()&#39;
+
+# Run golden reference regression tests
+HEALTHLLM_TEST_CATEGORY=golden julia --project=. -e &#39;using Pkg; Pkg.test()&#39;</code></pre><hr/><h2 id="3.-Available-Validators"><a class="docs-heading-anchor" href="#3.-Available-Validators">3. Available Validators</a><a id="3.-Available-Validators-1"></a><a class="docs-heading-anchor-permalink" href="#3.-Available-Validators" title="Permalink"></a></h2><p>The framework includes standard validators that can be evaluated directly via <code>validate(v, actual, expected)</code> or inside standard <code>@test</code>.</p><p><code>TestHarness</code> is a module under <code>test/</code>, not a package. <code>test/runtests.jl</code> includes it, so test files only need <code>using .TestHarness</code>. To use it elsewhere, for example in a REPL started in the test environment (<code>julia --project=test</code>) from the repository root, include it first:</p><pre><code class="language-julia hljs">include(&quot;test/harness/TestHarness.jl&quot;)
+using .TestHarness</code></pre><h3 id="ExactValidator"><a class="docs-heading-anchor" href="#ExactValidator"><code>ExactValidator</code></a><a id="ExactValidator-1"></a><a class="docs-heading-anchor-permalink" href="#ExactValidator" title="Permalink"></a></h3><p>For deterministic functions where exact equality (or numeric approximation) is expected:</p><pre><code class="language-julia hljs">using Test
+using .TestHarness
+
+v = ExactValidator()
+res = validate(v, 10 + 20, 30)
+@test res.passed
+
+v_approx = ExactValidator(atol=0.01)
+res_approx = validate(v_approx, 1.005, 1.000)
+@test res_approx.passed</code></pre><h3 id="NormalizedTextValidator"><a class="docs-heading-anchor" href="#NormalizedTextValidator"><code>NormalizedTextValidator</code></a><a id="NormalizedTextValidator-1"></a><a class="docs-heading-anchor-permalink" href="#NormalizedTextValidator" title="Permalink"></a></h3><p>For textual outputs that may differ in minor formatting (casing, surrounding whitespace, newlines, or punctuation):</p><pre><code class="language-julia hljs">using Test
+using .TestHarness
+
+v = NormalizedTextValidator(lowercase=true, trim=true, collapse_whitespace=true)
+res = validate(v, &quot;  Hypertension is high blood pressure. \n&quot;, &quot;hypertension is high blood pressure.&quot;)
+@test res.passed</code></pre><h3 id="ContainsValidator-and-RequiredContentValidator"><a class="docs-heading-anchor" href="#ContainsValidator-and-RequiredContentValidator"><code>ContainsValidator</code> &amp; <code>RequiredContentValidator</code></a><a id="ContainsValidator-and-RequiredContentValidator-1"></a><a class="docs-heading-anchor-permalink" href="#ContainsValidator-and-RequiredContentValidator" title="Permalink"></a></h3><p>For generated clinical text where specific concepts or phrases must appear (and forbidden claims must not):</p><pre><code class="language-julia hljs">using Test
+using .TestHarness
+
+v = RequiredContentValidator(
+    required=[&quot;elevated blood pressure&quot;, &quot;systolic&quot;, &quot;diastolic&quot;],
+    forbidden=[&quot;cure guaranteed&quot;],
+    mode=:all # :all requires all items, :any requires at least one
+)
+
+response = &quot;Hypertension is defined as elevated blood pressure with systolic &gt;= 130 or diastolic &gt;= 80.&quot;
+res = validate(v, response)
+@test res.passed</code></pre><h3 id="JSONStructureValidator"><a class="docs-heading-anchor" href="#JSONStructureValidator"><code>JSONStructureValidator</code></a><a id="JSONStructureValidator-1"></a><a class="docs-heading-anchor-permalink" href="#JSONStructureValidator" title="Permalink"></a></h3><p>For structured extractions, validating JSON schema, types, allowed value ranges, and enums:</p><pre><code class="language-julia hljs">using Test
+using .TestHarness
+
+jv = JSONStructureValidator(
+    required_keys=[&quot;patient_id&quot;, &quot;condition&quot;, &quot;confidence&quot;],
+    key_types=Dict(&quot;patient_id&quot; =&gt; Integer, &quot;condition&quot; =&gt; AbstractString),
+    range_constraints=Dict(&quot;confidence&quot; =&gt; (0.0, 1.0)),
+    allowed_values=Dict(&quot;urgency&quot; =&gt; [&quot;low&quot;, &quot;moderate&quot;, &quot;high&quot;])
+)
+
+raw_json = &quot;&quot;&quot;{&quot;patient_id&quot;: 1, &quot;condition&quot;: &quot;hypertension&quot;, &quot;confidence&quot;: 0.95, &quot;urgency&quot;: &quot;moderate&quot;}&quot;&quot;&quot;
+res = validate(jv, raw_json)
+@test res.passed</code></pre><h3 id="ExecutionValidator"><a class="docs-heading-anchor" href="#ExecutionValidator"><code>ExecutionValidator</code></a><a id="ExecutionValidator-1"></a><a class="docs-heading-anchor-permalink" href="#ExecutionValidator" title="Permalink"></a></h3><p>For generated SQL or FunSQL queries, executing them against a database connection (e.g. in-memory DuckDB) or executor function and comparing against an expected <code>DataFrame</code> or <code>ResultSet</code>:</p><pre><code class="language-julia hljs">using Test
+using DataFrames
+using .TestHarness
+
+db = create_test_duckdb()
+ev = ExecutionValidator(db)
+
+# Validate that generated SQL returns the expected DataFrame
+generated_sql = &quot;SELECT patient_id, first_name FROM patients WHERE age &gt; 65 ORDER BY patient_id;&quot;
+expected_df = DataFrame(patient_id=[1, 3], first_name=[&quot;Alice&quot;, &quot;Charlie&quot;])
+
+res = validate(ev, generated_sql, expected_df)
+@test res.passed</code></pre><p><code>ExecutionValidator</code> also supports schema catalogs and dialect preservation:</p><pre><code class="language-julia hljs">using Test
+using DataFrames
+using FunSQL
+using .TestHarness
+
+db = create_test_duckdb()
+catalog = FunSQL.SQLCatalog(
+    FunSQL.SQLTable(:patients, columns=[:patient_id, :first_name, :age]);
+    dialect=:duckdb
+)
+ev_cat = ExecutionValidator(db; catalog=catalog)
+
+# Selects patient_id and first_name for patients aged 65 and older
+funsql_code = &quot;From(:patients) |&gt; Where(Fun.\&quot;&gt;=\&quot;(Get.age, 65)) |&gt; Select(Get.patient_id, Get.first_name)&quot;
+expected_df = DataFrame(patient_id=[1, 3], first_name=[&quot;Alice&quot;, &quot;Charlie&quot;])
+
+res = validate(ev_cat, funsql_code, expected_df)
+@test res.passed</code></pre><hr/><h2 id="4.-Testing-with-Injected-Generators-and-Executors"><a class="docs-heading-anchor" href="#4.-Testing-with-Injected-Generators-and-Executors">4. Testing with Injected Generators and Executors</a><a id="4.-Testing-with-Injected-Generators-and-Executors-1"></a><a class="docs-heading-anchor-permalink" href="#4.-Testing-with-Injected-Generators-and-Executors" title="Permalink"></a></h2><p><code>HealthLLM.jl</code> is designed with native injection interfaces. Harness tests should use injected generators and executors to avoid unnecessary external network calls and paid API dependencies. Instead of mocking network libraries, use callable generator and executor injections:</p><h3 id="Injectable-generate_funsql"><a class="docs-heading-anchor" href="#Injectable-generate_funsql">Injectable <code>generate_funsql</code></a><a id="Injectable-generate_funsql-1"></a><a class="docs-heading-anchor-permalink" href="#Injectable-generate_funsql" title="Permalink"></a></h3><p>Pass a generator function <code>(prompt; model, schema, kwargs...) -&gt; reply</code>:</p><pre><code class="language-julia hljs">using Test
+using HealthLLM
+
+fake_gen = (prompt; kwargs...) -&gt; &quot;```julia\nFrom(:person) |&gt; Select(:person_id)\n```\nCounts persons.&quot;
+gen = HealthLLM.Execution.generate_funsql(&quot;prompt&quot;; generator=fake_gen)
+@test gen.funsql == &quot;From(:person) |&gt; Select(:person_id)&quot;</code></pre><h3 id="Injectable-run_task"><a class="docs-heading-anchor" href="#Injectable-run_task">Injectable <code>run_task</code></a><a id="Injectable-run_task-1"></a><a class="docs-heading-anchor-permalink" href="#Injectable-run_task" title="Permalink"></a></h3><p>Pass an injectable <code>generator</code>, <code>executor</code>, and <code>catalog</code>:</p><pre><code class="language-julia hljs">using Test
+using FunSQL
+using HealthLLM.Evaluation: BenchmarkTask, run_task, ResultSet
+
+task = BenchmarkTask(&quot;task-1&quot;, &quot;How many patients?&quot;, &quot;patients&quot;, :simple, &quot;SELECT COUNT(*) AS n FROM patients&quot;, &quot;&quot;, &quot;&quot;)
+test_catalog = FunSQL.SQLCatalog(FunSQL.SQLTable(:patients, columns=[:patient_id]))
+mock_executor = sql -&gt; ResultSet([&quot;n&quot;], [[42]])
+mock_gen = (prompt; kwargs...) -&gt; &quot;```julia\nFrom(:patients) |&gt; Group() |&gt; Select(:n =&gt; Agg.count())\n```&quot;
+
+result = run_task(task, :zero_shot; model=&quot;fake&quot;, executor=mock_executor, catalog=test_catalog, generator=mock_gen)
+@test result.outcome === :correct</code></pre><hr/><h2 id="5.-Working-with-Golden-References-and-Validation-Fixtures"><a class="docs-heading-anchor" href="#5.-Working-with-Golden-References-and-Validation-Fixtures">5. Working with Golden References &amp; Validation Fixtures</a><a id="5.-Working-with-Golden-References-and-Validation-Fixtures-1"></a><a class="docs-heading-anchor-permalink" href="#5.-Working-with-Golden-References-and-Validation-Fixtures" title="Permalink"></a></h2><p>Validation fixtures represent version-controlled pairs of known inputs and expected behaviors stored under <code>test/fixtures/</code>.</p><h3 id="Directory-Layout"><a class="docs-heading-anchor" href="#Directory-Layout">Directory Layout</a><a id="Directory-Layout-1"></a><a class="docs-heading-anchor-permalink" href="#Directory-Layout" title="Permalink"></a></h3><pre><code class="nohighlight hljs">test/fixtures/
+├── golden_query_cases.json   # SQL test queries &amp; expected patient/observation IDs
+├── golden_text_cases.json    # Clinical text responses &amp; required concepts
+└── structured_cases.json     # Structured JSON extraction fixtures</code></pre><h3 id="Loading-Fixtures-in-Tests"><a class="docs-heading-anchor" href="#Loading-Fixtures-in-Tests">Loading Fixtures in Tests</a><a id="Loading-Fixtures-in-Tests-1"></a><a class="docs-heading-anchor-permalink" href="#Loading-Fixtures-in-Tests" title="Permalink"></a></h3><pre><code class="language-julia hljs">using Test
+using .TestHarness
+
+cases = load_golden_cases(&quot;test/fixtures/golden_text_cases.json&quot;)
+for case in cases
+    validator = RequiredContentValidator(required=case[&quot;required_concepts&quot;])
+    res = validate(validator, case[&quot;mock_response&quot;])
+    @test res.passed
+end</code></pre><h3 id="Updating-Golden-References"><a class="docs-heading-anchor" href="#Updating-Golden-References">Updating Golden References</a><a id="Updating-Golden-References-1"></a><a class="docs-heading-anchor-permalink" href="#Updating-Golden-References" title="Permalink"></a></h3><p>When expected behavior intentionally changes, update the relevant fixtures carefully:</p><ol><li><strong>Investigate the failure.</strong> Determine whether it reveals a regression or an intentional behavior change.</li><li><strong>Verify the new expected behavior.</strong> For query tests, check that the generated query matches the intended database semantics. For text and structured-output tests, verify the expected content against the test requirements.</li><li><strong>Update the appropriate file.</strong> Edit the corresponding JSON fixture under <code>test/fixtures/</code>. If an expectation is defined directly in <code>test/golden/test_golden_regression.jl</code>, update that test instead.</li><li><strong>Run the regression tests.</strong> Confirm that the updated case passes and that negative regression checks still detect incorrect behavior.</li><li><strong>Run the full test suite</strong> when practical to check for unintended effects.</li></ol><p>Run the golden regression tests directly:</p><pre><code class="language-bash hljs">julia --project=test test/golden/test_golden_regression.jl</code></pre><p>Or run them through Julia&#39;s package test runner:</p><pre><code class="language-bash hljs">HEALTHLLM_TEST_CATEGORY=golden julia --project=. -e &#39;using Pkg; Pkg.test()&#39;</code></pre><p>Commit fixture changes alongside the code change that justifies them. <strong>Never change expected results solely to make a failing test pass.</strong></p><hr/><h2 id="6.-Security-and-Synthetic-Data-Guidelines"><a class="docs-heading-anchor" href="#6.-Security-and-Synthetic-Data-Guidelines">6. Security and Synthetic Data Guidelines</a><a id="6.-Security-and-Synthetic-Data-Guidelines-1"></a><a class="docs-heading-anchor-permalink" href="#6.-Security-and-Synthetic-Data-Guidelines" title="Permalink"></a></h2><p>When writing fixtures or tests:</p><ol><li><strong>Never use real Protected Health Information (PHI) or patient records.</strong> All fixtures must use synthetic or anonymized public data.</li><li><strong>Never commit API keys or credentials.</strong></li><li><strong>Execution safety</strong>: Always execute generated code against temporary, in-memory databases (<code>create_test_duckdb()</code>), never against production or external systems.</li></ol></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../design/">« Design and Limitations</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.19.0 on <span class="colophon-date" title="Sunday 18 October 2026 17:34">Sunday 18 October 2026</span>. Using Julia version 1.13.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
