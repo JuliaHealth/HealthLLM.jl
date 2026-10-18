@@ -21,6 +21,7 @@ makedocs(;
         "Evaluation" => "evaluation.md",
         "End-to-End Example" => "end-to-end.md",
         "Design and Limitations" => "design.md",
+        "Testing Guide" => "testing.md",
     ],
 )
 

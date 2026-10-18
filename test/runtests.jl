@@ -1,22 +1,50 @@
 using Test
 
+# Include Modular Test Harness
+include("harness/TestHarness.jl")
+using .TestHarness
+
 println("Starting tests")
 ti = time()
 
+selected_category = lowercase(get(ENV, "HEALTHLLM_TEST_CATEGORY", "all"))
+
 @testset "HealthLLM tests" begin
-    include("ExportsTest.jl")
-    include("HuggingFaceTest.jl")
-    include("UtilsTest.jl")
-    include("DatabaseTest.jl")
-    include("QueryTest.jl")
-    include("FunSQLTest.jl")
-    include("IngestionTest.jl")
-    include("EmbeddingsTest.jl")
-    include("StorageTest.jl")
-    include("PromptTest.jl")
-    include("ExecutionTest.jl")
-    include("GroundingDocsTest.jl")
-    include("EvaluationTest.jl")
+    # Core Test Suites
+    if selected_category in ("all", "core")
+        include("ExportsTest.jl")
+        include("HuggingFaceTest.jl")
+        include("UtilsTest.jl")
+        include("DatabaseTest.jl")
+        include("QueryTest.jl")
+        include("FunSQLTest.jl")
+        include("IngestionTest.jl")
+        include("EmbeddingsTest.jl")
+        include("StorageTest.jl")
+        include("PromptTest.jl")
+        include("ExecutionTest.jl")
+        include("GroundingDocsTest.jl")
+        include("EvaluationTest.jl")
+    end
+
+    # Test Harness Suites
+    if selected_category in ("all", "unit", "harness")
+        @testset "Harness Unit Tests" begin
+            include("unit/test_harness_unit.jl")
+        end
+    end
+
+    if selected_category in ("all", "execution")
+        @testset "Execution Tests" begin
+            include("execution/test_funsql_execution.jl")
+        end
+    end
+
+    if selected_category in ("all", "golden")
+        @testset "Golden Reference Regression Tests" begin
+            include("golden/test_golden_regression.jl")
+        end
+    end
 end
 
 ti = time() - ti
