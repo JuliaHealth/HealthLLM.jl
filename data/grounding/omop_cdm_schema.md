@@ -90,7 +90,8 @@
 - `drug_concept_id` INTEGER (FK → concept)
 - `drug_era_start_date` DATE
 - `drug_era_end_date` DATE
-- `drug_occurrence_count` INTEGER
+- `drug_exposure_count` INTEGER
+- `gap_days` INTEGER
 
 ## procedure_occurrence
 - `procedure_occurrence_id` INTEGER PRIMARY KEY
@@ -224,3 +225,4 @@
 4. **Find comorbidities**: Subqueries finding patients with condition A, then finding their other conditions
 5. **Temporal patterns**: Filter conditions by date ranges, seasons, year/month
 6. **Drug utilization**: Join drug_exposure/drug_era → concept for drug details
+7. **Drug ingredients vs products**: drug_era.drug_concept_id is always an RxNorm Ingredient (e.g. lisinopril), while drug_exposure.drug_concept_id is usually a specific product (e.g. lisinopril 10 MG Oral Tablet). To find exposures to an ingredient, join drug_exposure → concept_ancestor on descendant_concept_id with the ingredient as ancestor_concept_id
