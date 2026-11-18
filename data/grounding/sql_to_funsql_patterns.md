@@ -77,7 +77,7 @@ Order(Get.n_persons |> Desc())
 SQL:
 
 ```sql
-SELECT person_id, COUNT(*) AS n_drugs
+SELECT person_id, COUNT(*) AS n_eras
 FROM drug_era
 GROUP BY person_id
 HAVING COUNT(*) >= 3
@@ -89,7 +89,7 @@ FunSQL:
 From(:drug_era) |>
 Group(Get.person_id) |>
 Where(Agg.count() .>= 3) |>
-Select(Get.person_id, :n_drugs => Agg.count())
+Select(Get.person_id, :n_eras => Agg.count())
 ```
 
 ## Pattern 6: SELECT DISTINCT
